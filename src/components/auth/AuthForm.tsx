@@ -14,12 +14,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// import { Checkbox } from "@/components/ui/checkbox"; // Checkbox não é mais necessário
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de e-mail inválido." }),
@@ -28,7 +27,6 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(1, { message: "Nome completo é obrigatório." }),
-  // optInMarketing: z.boolean().default(false), // Removido
 });
 
 type AuthFormProps = {
@@ -40,6 +38,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const schema = mode === "login" ? loginSchema : signupSchema;
 
@@ -50,7 +49,6 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       ...(mode === "signup" && { 
         fullName: "",
-        // optInMarketing: false // Removido
       }),
     },
   });
@@ -72,10 +70,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           fullName: signupValues.fullName,
           email: signupValues.email,
           password: signupValues.password,
-          // optInMarketing: signupValues.optInMarketing, // Removido
         });
         if (success) {
-          toast({ title: "Cadastro Efetuado com Sucesso", description: "Bem-vindo(a) ao Duo Rico! Verifique seu e-mail para confirmação, se aplicável." });
+          toast({ title: "Cadastro Efetuado com Sucesso", description: "Você será redirecionado(a) para a tela de login." });
            router.push("/login"); 
         } else {
           toast({ title: "Falha no Cadastro", description: error?.message || "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
@@ -87,6 +84,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       setIsLoading(false);
     }
   }
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
     <Form {...form}>
@@ -125,37 +124,37 @@ export function AuthForm({ mode }: AuthFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Senha</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
+              <div className="relative">
+                <FormControl>
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    {...field} 
+                    className="pr-10"
+                  />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={togglePasswordVisibility}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span className="sr-only">
+                    {showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  </span>
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
         />
-        {/* 
-        // O campo optInMarketing foi removido
-        mode === "signup" && (
-          <FormField
-            control={form.control}
-            name="optInMarketing"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>
-                    Aceito receber comunicações de marketing
-                  </FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-        )
-        */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "login" ? "Entrar" : "Cadastrar"}

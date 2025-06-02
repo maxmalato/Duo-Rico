@@ -5,21 +5,22 @@ import type { Transaction } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MONTHS } from "@/lib/constants"; // Import MONTHS
+import { MONTHS, EXPENSE_CATEGORIES } from "@/lib/constants"; 
+import { formatCurrencyBRL } from "@/lib/utils";
 
 interface RecentExpensesProps {
   expenses: Transaction[];
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-};
-
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  // Find month label from constants
   const monthLabel = MONTHS.find(m => m.value === date.getMonth() + 1)?.label.substring(0,3) || (date.getMonth() + 1).toString().padStart(2, '0');
-  return `${date.getDate()} ${monthLabel}`; // e.g., 15 Jan
+  return `${date.getDate()} ${monthLabel}`; 
+};
+
+const getCategoryLabel = (categoryValue: string) => {
+  const category = EXPENSE_CATEGORIES.find(cat => cat.value === categoryValue);
+  return category ? category.label : categoryValue.replace(/_/g, " ");
 };
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
@@ -40,10 +41,10 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
                   <div>
                     <p className="font-medium">{expense.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(expense.createdAt)} - <Badge variant="outline" className="capitalize">{expense.category.replace(/_/g, " ")}</Badge>
+                      {formatDate(expense.createdAt)} - <Badge variant="outline" className="capitalize">{getCategoryLabel(expense.category)}</Badge>
                     </p>
                   </div>
-                  <p className="font-semibold text-destructive">{formatCurrency(expense.amount)}</p>
+                  <p className="font-semibold text-destructive">{formatCurrencyBRL(expense.amount)}</p>
                 </li>
               ))}
             </ul>

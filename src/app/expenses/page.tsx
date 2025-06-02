@@ -14,6 +14,7 @@ import type { Transaction } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrencyBRL } from "@/lib/utils";
 
 export default function ExpensesPage() {
   const { user } = useAuth();
@@ -60,7 +61,6 @@ export default function ExpensesPage() {
   };
 
   const totalFilteredExpenses = filteredExpenses.reduce((sum, t) => sum + t.amount, 0);
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   const currentMonthLabel = MONTHS.find(m => m.value === filterMonth)?.label || "";
 
   return (
@@ -114,7 +114,7 @@ export default function ExpensesPage() {
             </div>
             <p className="text-lg font-semibold">
               Total de Despesas para {currentMonthLabel} {filterYear}: 
-              <span className="text-destructive ml-2">{formatCurrency(totalFilteredExpenses)}</span>
+              <span className="text-destructive ml-2">{formatCurrencyBRL(totalFilteredExpenses)}</span>
             </p>
           </CardContent>
         </Card>

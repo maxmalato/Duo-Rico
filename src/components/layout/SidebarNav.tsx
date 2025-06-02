@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ArrowRightLeft, Wallet, Settings, LayoutDashboard } from "lucide-react";
+import { Home, ArrowRightLeft, Wallet, LayoutDashboard } from "lucide-react"; // Settings removido
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger,
+  SidebarTrigger, // Mantido caso seja usado internamente pelo componente Sidebar para outros fins
 } from "@/components/ui/sidebar";
 
 const navItems = [
@@ -28,11 +28,12 @@ export function SidebarNav() {
 
   return (
     <Sidebar collapsible="icon" variant="sidebar" defaultOpen={true}>
-       <SidebarHeader className="hidden items-center justify-between p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 md:flex">
-          <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-            <Home className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-lg text-primary">Duo Rico</span>
+       <SidebarHeader className="flex items-center justify-between p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 md:flex">
+          <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:p-1" aria-label="Página Inicial Duo Rico">
+            <Home className="h-7 w-7 text-primary" />
+            <span className="font-semibold text-lg text-primary group-data-[collapsible=icon]:hidden">Duo Rico</span>
           </Link>
+          {/* SidebarTrigger aqui é o original do componente, para expandir/colapsar quando não está em modo sheet */}
           <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
        </SidebarHeader>
       <SidebarContent>
@@ -56,7 +57,7 @@ export function SidebarNav() {
         </SidebarMenu>
       </SidebarContent>
        <SidebarFooter className="hidden p-4 group-data-[collapsible=icon]:p-2 md:block">
-          {/* Footer content like settings or user profile short if needed */}
+          {/* Conteúdo do rodapé, se necessário */}
        </SidebarFooter>
     </Sidebar>
   );

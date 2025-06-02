@@ -14,6 +14,7 @@ import type { Transaction } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrencyBRL } from "@/lib/utils";
 
 export default function IncomePage() {
   const { user } = useAuth();
@@ -60,7 +61,6 @@ export default function IncomePage() {
   };
   
   const totalFilteredIncome = filteredIncome.reduce((sum, t) => sum + t.amount, 0);
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   const currentMonthLabel = MONTHS.find(m => m.value === filterMonth)?.label || "";
 
   return (
@@ -114,7 +114,7 @@ export default function IncomePage() {
             </div>
             <p className="text-lg font-semibold">
               Total de Receitas para {currentMonthLabel} {filterYear}: 
-              <span className="text-accent ml-2">{formatCurrency(totalFilteredIncome)}</span>
+              <span className="text-accent ml-2">{formatCurrencyBRL(totalFilteredIncome)}</span>
             </p>
           </CardContent>
         </Card>

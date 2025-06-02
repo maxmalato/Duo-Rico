@@ -15,7 +15,7 @@ import {
   FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea"; // Not used
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -95,7 +95,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         userId: user.id,
         type,
         description: values.description,
-        amount: values.amount,
+        amount: values.amount, // Storing the direct numeric value
         category: values.category,
         createdAt: existingTransaction ? existingTransaction.createdAt : new Date().toISOString(),
       };
@@ -176,9 +176,15 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Valor ($)</FormLabel>
+                <FormLabel>Valor (R$)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="0.00" 
+                    inputMode="decimal"
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

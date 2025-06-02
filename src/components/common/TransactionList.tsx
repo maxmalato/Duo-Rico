@@ -21,6 +21,7 @@ import { useState } from "react";
 import { deleteTransactionFromLocalStorage, deleteFutureRecurringTransactions } from "@/lib/localStorageService";
 import { useToast } from "@/hooks/use-toast";
 import { MONTHS } from "@/lib/constants";
+import { formatCurrencyBRL } from "@/lib/utils";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -29,8 +30,6 @@ interface TransactionListProps {
   onDelete: () => void; // Callback to refresh list
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
 export function TransactionList({ transactions, type, onEdit, onDelete }: TransactionListProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteType, setDeleteType] = useState<'single' | 'future' | null>(null);
@@ -38,7 +37,7 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const { toast } = useToast();
 
   const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
-  const typeInPortuguesePlural = type === 'income' ? 'receitas' : 'despesas';
+  // const typeInPortuguesePlural = type === 'income' ? 'receitas' : 'despesas'; // Not used
 
 
   const handleDelete = (transaction: Transaction, delType: 'single' | 'future') => {
@@ -94,7 +93,7 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
               <TableCell><Badge variant="outline" className="capitalize">{transaction.category.replace(/_/g, " ")}</Badge></TableCell>
               <TableCell>{getMonthName(transaction.month)} {transaction.year}</TableCell>
               <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-accent' : 'text-destructive'}`}>
-                {formatCurrency(transaction.amount)}
+                {formatCurrencyBRL(transaction.amount)}
               </TableCell>
               <TableCell className="text-center">
                 {transaction.isRecurring ? `Sim (${transaction.installmentNumber}/${transaction.totalInstallments})` : 'Não'}

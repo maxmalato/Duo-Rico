@@ -11,24 +11,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCircle, Settings, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react"; // UserCircle, Settings removidos
 import Link from "next/link";
 import { useSidebar } from "@/components/ui/sidebar";
 
 export function Header() {
-  const { user, logout } = useAuth(); // user é agora UserProfile | null
-  const { toggleSidebar, isMobile } = useSidebar();
+  const { user, logout } = useAuth(); 
+  const { toggleSidebar } = useSidebar(); // isMobile não é mais necessário aqui para o toggle
 
   const getInitials = (nameOrEmail?: string) => {
-    if (!nameOrEmail) return "DU"; // Duo Rico initials
-    // Tenta pegar as iniciais do nome completo primeiro
+    if (!nameOrEmail) return "DU"; 
     if (nameOrEmail.includes(' ')) {
       const parts = nameOrEmail.split(' ');
       const firstNameInitial = parts[0]?.[0] || '';
       const lastNameInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] || '' : '';
       return `${firstNameInitial}${lastNameInitial}`.toUpperCase() || '??';
     }
-    // Se não houver espaço (provavelmente é um e-mail ou nome único), pega as duas primeiras letras
     return nameOrEmail.substring(0, 2).toUpperCase();
   };
   
@@ -36,17 +34,15 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
-      {isMobile && (
-         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Alternar barra lateral</span>
-          </Button>
-      )}
+      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0">
+        <Menu className="h-6 w-6" />
+        <span className="sr-only">Alternar barra lateral</span>
+      </Button>
+      
       <div className="flex-1">
-        <Link href="/dashboard" className="text-2xl font-bold text-primary">
-          Duo Rico
-        </Link>
+        {/* O título "Duo Rico" foi removido daqui, será um ícone na sidebar */}
       </div>
+      
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -67,6 +63,7 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {/* Perfil e Configurações removidos 
             <DropdownMenuItem>
               <UserCircle className="mr-2 h-4 w-4" />
               <span>Perfil</span>
@@ -76,7 +73,8 @@ export function Header() {
               <span>Configurações</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            */}
+            <DropdownMenuItem onClick={logout} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
             </DropdownMenuItem>
