@@ -1,3 +1,4 @@
+
 // src/components/layout/Header.tsx
 "use client";
 import { Button } from "@/components/ui/button";
@@ -11,16 +12,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Menu } from "lucide-react"; // UserCircle, Settings removidos
+import { LogOut, Menu, Home } from "lucide-react";
 import Link from "next/link";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { SidebarNavContent } from "./SidebarNavContent"; // Renomear SidebarNav para SidebarNavContent
 
 export function Header() {
-  const { user, logout } = useAuth(); 
-  const { toggleSidebar } = useSidebar(); // isMobile não é mais necessário aqui para o toggle
+  const { user, logout } = useAuth();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const getInitials = (nameOrEmail?: string) => {
-    if (!nameOrEmail) return "DU"; 
+    if (!nameOrEmail) return "DU";
     if (nameOrEmail.includes(' ')) {
       const parts = nameOrEmail.split(' ');
       const firstNameInitial = parts[0]?.[0] || '';
@@ -33,16 +36,36 @@ export function Header() {
   const displayName = user?.fullName || user?.email;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0">
-        <Menu className="h-6 w-6" />
-        <span className="sr-only">Alternar barra lateral</span>
-      </Button>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
+      {/* Left: Hamburger Menu */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="shrink-0">
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Abrir menu de navegação</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[260px] p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle className="text-primary flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Duo Rico
+            </SheetTitle>
+          </SheetHeader>
+          <SidebarNavContent onLinkClick={() => setIsSheetOpen(false)} />
+        </SheetContent>
+      </Sheet>
       
-      <div className="flex-1">
-        {/* O título "Duo Rico" foi removido daqui, será um ícone na sidebar */}
+      {/* Center: Home Icon */}
+      <div className="flex-1 flex justify-center">
+        <Link href="/dashboard" passHref>
+          <Button variant="ghost" size="icon" aria-label="Painel Principal">
+            <Home className="h-6 w-6 text-primary" />
+          </Button>
+        </Link>
       </div>
       
+      {/* Right: User Menu */}
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -63,17 +86,6 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* Perfil e Configurações removidos 
-            <DropdownMenuItem>
-              <UserCircle className="mr-2 h-4 w-4" />
-              <span>Perfil</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Configurações</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            */}
             <DropdownMenuItem onClick={logout} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
@@ -81,6 +93,7 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      {!user && <div className="w-10 h-10"></div> /* Placeholder to maintain layout if no user */}
     </header>
   );
 }

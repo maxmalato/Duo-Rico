@@ -1,3 +1,4 @@
+
 // src/components/dashboard/RecentExpenses.tsx
 "use client";
 
@@ -5,7 +6,7 @@ import type { Transaction } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MONTHS, EXPENSE_CATEGORIES } from "@/lib/constants"; 
+import { MONTHS, getCategoryLabel } from "@/lib/constants"; 
 import { formatCurrencyBRL } from "@/lib/utils";
 
 interface RecentExpensesProps {
@@ -16,11 +17,6 @@ const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const monthLabel = MONTHS.find(m => m.value === date.getMonth() + 1)?.label.substring(0,3) || (date.getMonth() + 1).toString().padStart(2, '0');
   return `${date.getDate()} ${monthLabel}`; 
-};
-
-const getCategoryLabel = (categoryValue: string) => {
-  const category = EXPENSE_CATEGORIES.find(cat => cat.value === categoryValue);
-  return category ? category.label : categoryValue.replace(/_/g, " ");
 };
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
@@ -41,7 +37,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
                   <div>
                     <p className="font-medium">{expense.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(expense.createdAt)} - <Badge variant="outline" className="capitalize">{getCategoryLabel(expense.category)}</Badge>
+                      {formatDate(expense.createdAt)} - <Badge variant="outline" className="capitalize">{getCategoryLabel(expense.category, 'expense')}</Badge>
                     </p>
                   </div>
                   <p className="font-semibold text-destructive">{formatCurrencyBRL(expense.amount)}</p>

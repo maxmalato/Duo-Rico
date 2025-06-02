@@ -1,9 +1,12 @@
-// src/components/layout/SidebarNav.tsx
+
+// This file is effectively replaced by SidebarNavContent.tsx
+// Keeping it to avoid breaking existing imports immediately, but it's not used by ProtectedPageLayout anymore.
+// You can delete this file if SidebarNavContent.tsx is used everywhere instead.
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ArrowRightLeft, Wallet, LayoutDashboard } from "lucide-react"; // Settings removido
+import { Home, ArrowRightLeft, Wallet, LayoutDashboard } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -13,27 +16,27 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger, // Mantido caso seja usado internamente pelo componente Sidebar para outros fins
+  SidebarTrigger, 
 } from "@/components/ui/sidebar";
 
 const navItems = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard, tooltip: "Painel" },
   { href: "/income", label: "Receitas", icon: Wallet, tooltip: "Receitas" },
   { href: "/expenses", label: "Despesas", icon: ArrowRightLeft, tooltip: "Despesas" },
-  // { href: "/settings", label: "Configurações", icon: Settings, tooltip: "Configurações" }, 
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar" defaultOpen={true}>
+    // This component's structure is deprecated in favor of SidebarNavContent used within a Sheet in Header.tsx
+    // The old collapsible sidebar is no longer the primary navigation model.
+    <Sidebar collapsible="icon" variant="sidebar" defaultOpen={true} className="hidden"> {/* Hidden as it's replaced */}
        <SidebarHeader className="flex items-center justify-between p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 md:flex">
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:p-1" aria-label="Página Inicial Duo Rico">
             <Home className="h-7 w-7 text-primary" />
             <span className="font-semibold text-lg text-primary group-data-[collapsible=icon]:hidden">Duo Rico</span>
           </Link>
-          {/* SidebarTrigger aqui é o original do componente, para expandir/colapsar quando não está em modo sheet */}
           <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
        </SidebarHeader>
       <SidebarContent>
@@ -57,7 +60,6 @@ export function SidebarNav() {
         </SidebarMenu>
       </SidebarContent>
        <SidebarFooter className="hidden p-4 group-data-[collapsible=icon]:p-2 md:block">
-          {/* Conteúdo do rodapé, se necessário */}
        </SidebarFooter>
     </Sidebar>
   );

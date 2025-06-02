@@ -1,3 +1,4 @@
+
 // src/components/common/TransactionList.tsx
 "use client";
 
@@ -20,7 +21,7 @@ import {
 import { useState } from "react";
 import { deleteTransactionFromLocalStorage, deleteFutureRecurringTransactions } from "@/lib/localStorageService";
 import { useToast } from "@/hooks/use-toast";
-import { MONTHS } from "@/lib/constants";
+import { MONTHS, getCategoryLabel } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/utils";
 
 interface TransactionListProps {
@@ -37,8 +38,6 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const { toast } = useToast();
 
   const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
-  // const typeInPortuguesePlural = type === 'income' ? 'receitas' : 'despesas'; // Not used
-
 
   const handleDelete = (transaction: Transaction, delType: 'single' | 'future') => {
     setSelectedTransaction(transaction);
@@ -90,7 +89,7 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
           {transactions.map((transaction) => (
             <TableRow key={transaction.id}>
               <TableCell className="font-medium">{transaction.description}</TableCell>
-              <TableCell><Badge variant="outline" className="capitalize">{transaction.category.replace(/_/g, " ")}</Badge></TableCell>
+              <TableCell><Badge variant="outline" className="capitalize">{getCategoryLabel(transaction.category, transaction.type)}</Badge></TableCell>
               <TableCell>{getMonthName(transaction.month)} {transaction.year}</TableCell>
               <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-accent' : 'text-destructive'}`}>
                 {formatCurrencyBRL(transaction.amount)}

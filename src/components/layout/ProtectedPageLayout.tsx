@@ -1,3 +1,4 @@
+
 // src/components/layout/ProtectedPageLayout.tsx
 "use client";
 import type React from 'react';
@@ -5,10 +6,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
-import { SidebarNav } from './SidebarNav';
 import { Loader2 } from 'lucide-react';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-
 
 export function ProtectedPageLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -29,14 +27,11 @@ export function ProtectedPageLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <SidebarProvider>
-      <SidebarNav />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header />
+      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        {children}
+      </main>
+    </div>
   );
 }

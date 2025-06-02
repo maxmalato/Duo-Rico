@@ -1,3 +1,4 @@
+
 import type { Category } from './types';
 
 export const LOCAL_STORAGE_USERS_KEY = 'duoRicoUsers';
@@ -14,20 +15,23 @@ export const INCOME_CATEGORIES: Category[] = [
 ];
 
 export const EXPENSE_CATEGORIES: Category[] = [
-  { value: 'rent_mortgage', label: 'Aluguel/Hipoteca' },
+  { value: 'rent_mortgage', label: 'Aluguel/Moradia' },
   { value: 'utilities', label: 'Contas (Gás, Luz, Água)' },
   { value: 'internet_phone', label: 'Internet/Telefone' },
   { value: 'groceries', label: 'Supermercado' },
-  { value: 'dining_out', label: 'Restaurantes' },
-  { value: 'transportation', label: 'Transporte (Carro, Público)' },
-  { value: 'healthcare', label: 'Saúde (Plano, Contas Médicas)' },
-  { value: 'entertainment', label: 'Entretenimento' },
+  { value: 'dining_out', label: 'Restaurantes/Alimentação Fora' },
+  { value: 'transportation', label: 'Transporte' },
+  { value: 'healthcare', label: 'Saúde' },
+  { value: 'entertainment', label: 'Lazer/Entretenimento' },
   { value: 'clothing', label: 'Vestuário' },
   { value: 'education', label: 'Educação' },
   { value: 'debt_payment', label: 'Pagamento de Dívidas' },
-  { value: 'savings', label: 'Poupança' },
+  { value: 'savings', label: 'Poupança/Investimentos' },
   { value: 'gifts_donations', label: 'Presentes/Doações' },
   { value: 'personal_care', label: 'Cuidados Pessoais' },
+  { value: 'subscriptions', label: 'Assinaturas (Streaming, Apps)' },
+  { value: 'pets', label: 'Animais de Estimação' },
+  { value: 'travel', label: 'Viagens' },
   { value: 'other', label: 'Outro' },
 ];
 
@@ -51,3 +55,10 @@ export const YEARS: { value: number; label: string }[] = Array.from({ length: 10
   value: CURRENT_YEAR - 5 + i,
   label: (CURRENT_YEAR - 5 + i).toString(),
 }));
+
+// Helper function to get category label
+export const getCategoryLabel = (value: string, type: 'income' | 'expense'): string => {
+  const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const category = categories.find(cat => cat.value === value);
+  return category ? category.label : value.replace(/_/g, " ");
+};
