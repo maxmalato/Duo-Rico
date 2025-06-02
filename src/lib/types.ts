@@ -1,17 +1,32 @@
-export interface User {
-  id: string;
-  fullName: string; // Adicionado campo para nome completo
-  email: string;
-  password?: string; // Password stored hashed in a real DB, plain for localStorage simulation
-  optInMarketing: boolean;
-  createdAt: string;
+// src/lib/types.ts
+
+// Representa o perfil do usuário combinado com dados de autenticação
+// Usado no AuthContext e em toda a aplicação para o usuário logado
+export interface UserProfile {
+  id: string; // UUID do Supabase Auth user
+  fullName: string; // Da tabela 'profiles'
+  email: string; // Do Supabase Auth user
+  optInMarketing?: boolean; // Da tabela 'profiles'
+  couple_id?: string | null; // Da tabela 'profiles', para futuras implementações
+  // createdAt é gerenciado pelo Supabase e pode ser acessado via auth.user.created_at
 }
 
+
+// Tipo para os dados que são armazenados na tabela 'profiles'
+// Excluindo 'id' e 'email' que vêm diretamente do Supabase Auth user
+export interface ProfileData {
+  name: string; // Corresponde a 'fullName'
+  opt_in_marketing?: boolean;
+  couple_id?: string | null;
+}
+
+
+// Tipos para transações permanecem os mesmos por enquanto
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
   id: string;
-  userId: string;
+  userId: string; // Deverá ser o ID do usuário do Supabase
   type: TransactionType;
   description: string;
   amount: number;
@@ -20,12 +35,24 @@ export interface Transaction {
   year: number;
   createdAt: string; // ISO date string
   isRecurring?: boolean;
-  recurringGroupId?: string; // ID linking all transactions in a recurring series
-  installmentNumber?: number; // e.g., 1 of 12
-  totalInstallments?: number; // e.g., 12
+  recurringGroupId?: string; 
+  installmentNumber?: number; 
+  totalInstallments?: number; 
 }
 
 export interface Category {
   value: string;
   label: string;
+}
+
+
+// Tipo User original, usado pelo localStorageService (será gradualmente substituído)
+// Mantido por enquanto para não quebrar o localStorageService para transações.
+export interface LegacyUser {
+  id: string;
+  fullName: string;
+  email: string;
+  password?: string; 
+  optInMarketing: boolean;
+  createdAt: string;
 }

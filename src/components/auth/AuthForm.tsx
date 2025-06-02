@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+// import type { UserProfile } from "@/lib/types"; // UserProfile não é diretamente usado aqui
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de e-mail inválido." }),
@@ -59,30 +60,33 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true);
     try {
       if (mode === "login") {
-        const success = await login(values.email, values.password);
+        const { success, error } = await login(values.email, values.password);
         if (success) {
           toast({ title: "Login Efetuado com Sucesso", description: "Bem-vindo(a) de volta!" });
           router.push("/dashboard");
         } else {
-          toast({ title: "Falha no Login", description: "E-mail ou senha inválidos.", variant: "destructive" });
+          toast({ title: "Falha no Login", description: error?.message || "E-mail ou senha inválidos.", variant: "destructive" });
         }
       } else if (mode === "signup") {
-        const signupValues = values as z.infer<typeof signupSchema>; // Cast para incluir fullName
-        const success = await signup({
+        const signupValues = values as z.infer<typeof signupSchema>;
+        const { success, error } = await signup({
           fullName: signupValues.fullName,
           email: signupValues.email,
           password: signupValues.password,
           optInMarketing: signupValues.optInMarketing,
         });
         if (success) {
-          toast({ title: "Cadastro Efetuado com Sucesso", description: "Bem-vindo(a) ao Duo Rico!" });
-          router.push("/dashboard");
+          toast({ title: "Cadastro Efetuado com Sucesso", description: "Bem-vindo(a) ao Duo Rico! Verifique seu e-mail para confirmação, se aplicável." });
+          // O Supabase pode enviar um e-mail de confirmação. O onAuthStateChange cuidará do redirecionamento após a confirmação, se necessário.
+          // Por enquanto, redirecionamos otimisticamente ou esperamos a confirmação.
+          // router.push("/dashboard"); // Pode ser melhor esperar a confirmação ou deixar o onAuthStateChange lidar com isso.
+           router.push("/login"); // Redirecionar para login após cadastro, para que o usuário confirme o e-mail se necessário.
         } else {
-          toast({ title: "Falha no Cadastro", description: "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
+          toast({ title: "Falha no Cadastro", description: error?.message || "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
         }
       }
-    } catch (error) {
-      toast({ title: "Erro", description: "Ocorreu um erro inesperado.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error?.message || "Ocorreu um erro inesperado.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
