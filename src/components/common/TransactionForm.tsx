@@ -15,7 +15,6 @@ import {
   FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea"; // Not used
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +32,7 @@ const transactionFormSchema = z.object({
   month: z.coerce.number().min(1).max(12),
   year: z.coerce.number(),
   isRecurring: z.boolean().default(false),
-  installments: z.coerce.number().min(1).max(48).optional(),
+  installments: z.coerce.number().min(1, "Parcelas devem ser no mínimo 1.").max(48, "Parcelas devem ser no máximo 48.").optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionFormSchema>;
@@ -63,7 +62,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       month: existingTransaction.month,
       year: existingTransaction.year,
       isRecurring: existingTransaction.isRecurring || false,
-      installments: existingTransaction.totalInstallments || 1,
+      installments: existingTransaction.totalInstallments || undefined, // Use undefined if not set, schema handles min
     } : {
       description: "",
       amount: 0,
@@ -71,7 +70,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       month: new Date().getMonth() + 1,
       year: CURRENT_YEAR,
       isRecurring: false,
-      installments: 1,
+      installments: undefined, // Default to undefined, schema handles min if recurring
     },
   });
 
@@ -86,6 +85,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
 
     try {
       if (values.isRecurring && (!values.installments || values.installments < 1)) {
+        // Zod schema should catch this, but an extra check can be here if needed
         form.setError("installments", { type: "manual", message: "Parcelas devem ser no mínimo 1 para transações recorrentes." });
         setIsLoading(false);
         return;
@@ -95,7 +95,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         userId: user.id,
         type,
         description: values.description,
-        amount: values.amount, // Storing the direct numeric value
+        amount: values.amount,
         category: values.category,
         createdAt: existingTransaction ? existingTransaction.createdAt : new Date().toISOString(),
       };
@@ -103,7 +103,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       if (values.isRecurring && values.installments && values.installments > 0) {
         const recurringGroupId = existingTransaction?.recurringGroupId || crypto.randomUUID();
         for (let i = 0; i < values.installments; i++) {
-          const transactionDate = new Date(values.year, values.month -1 + i); // month is 0-indexed
+          const transactionDate = new Date(values.year, values.month -1 + i); 
           const transaction: Transaction = {
             ...baseTransactionData,
             id: existingTransaction && i === 0 ? existingTransaction.id : crypto.randomUUID(), 
@@ -140,10 +140,10 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
 
       onFormSubmit(); 
       dialogClose?.(); 
-      form.reset(existingTransaction ? undefined : { 
+      form.reset({ 
         description: "", amount: 0, category: "", 
         month: new Date().getMonth() + 1, year: CURRENT_YEAR, 
-        isRecurring: false, installments: 1
+        isRecurring: false, installments: undefined
       });
 
     } catch (error) {
@@ -183,7 +183,9 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
                     step="0.01" 
                     placeholder="0.00" 
                     inputMode="decimal"
-                    {...field} 
+                    {...field}
+                    value={isNaN(field.value) ? '' : field.value}
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -282,13 +284,20 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="installments"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Número de Parcelas (até 48)</FormLabel>
+                <FormLabel>Número de Parcelas (1-48)</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" max="48" placeholder="Ex: 12" {...field} 
-                  onChange={(e) => field.onChange(parseInt(e.target.value))} />
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    max="48" 
+                    placeholder="Ex: 12" 
+                    {...field} 
+                    value={(field.value === undefined || isNaN(field.value)) ? '' : field.value}
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                  />
                 </FormControl>
                 <FormDescription>
-                  Esta {typeInPortugueseSingular} será repetida por esta quantidade de meses.
+                  Esta {typeInPortugueseSingular} será repetida por esta quantidade de meses. Se não for recorrente, deixe em branco ou 1.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
