@@ -16,7 +16,7 @@ export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, passwordAttempt: string) => Promise<boolean>;
-  signup: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<boolean>;
+  signup: (userData: Omit<User, 'id' | 'createdAt' | 'password'> & { password?: string }) => Promise<boolean>; // fullName será incluído aqui
   logout: () => void;
 }
 
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   }, []);
 
-  const signup = useCallback(async (userData: Omit<User, 'id' | 'createdAt'>): Promise<boolean> => {
+  const signup = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'password'> & { password?: string }): Promise<boolean> => {
     setIsLoading(true);
     const users = getUsersFromLocalStorage();
     if (users.find(u => u.email === userData.email)) {
@@ -59,9 +59,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false; // User already exists
     }
 
+    if (!userData.password) {
+      setIsLoading(false);
+      // Idealmente, isso seria tratado pela validação do formulário antes de chamar signup
+      console.error("Password is required for signup.");
+      return false;
+    }
+
     const newUser: User = {
-      ...userData,
       id: crypto.randomUUID(),
+      fullName: userData.fullName,
+      email: userData.email,
+      password: userData.password, // Senha é obrigatória para cadastro
+      optInMarketing: userData.optInMarketing,
       createdAt: new Date().toISOString(),
     };
     users.push(newUser);

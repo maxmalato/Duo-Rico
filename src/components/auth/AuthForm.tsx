@@ -27,6 +27,7 @@ const loginSchema = z.object({
 });
 
 const signupSchema = loginSchema.extend({
+  fullName: z.string().min(1, { message: "Nome completo é obrigatório." }),
   optInMarketing: z.boolean().default(false),
 });
 
@@ -47,7 +48,10 @@ export function AuthForm({ mode }: AuthFormProps) {
     defaultValues: {
       email: "",
       password: "",
-      ...(mode === "signup" && { optInMarketing: false }),
+      ...(mode === "signup" && { 
+        fullName: "",
+        optInMarketing: false 
+      }),
     },
   });
 
@@ -63,8 +67,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           toast({ title: "Falha no Login", description: "E-mail ou senha inválidos.", variant: "destructive" });
         }
       } else if (mode === "signup") {
-        const signupValues = values as z.infer<typeof signupSchema>;
+        const signupValues = values as z.infer<typeof signupSchema>; // Cast para incluir fullName
         const success = await signup({
+          fullName: signupValues.fullName,
           email: signupValues.email,
           password: signupValues.password,
           optInMarketing: signupValues.optInMarketing,
@@ -86,6 +91,21 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {mode === "signup" && (
+          <FormField
+            control={form.control}
+            name="fullName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome Completo</FormLabel>
+                <FormControl>
+                  <Input placeholder="Seu nome completo" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="email"

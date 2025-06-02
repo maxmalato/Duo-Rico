@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  fullName: string; // Adicionado campo para nome completo
   email: string;
   password?: string; // Password stored hashed in a real DB, plain for localStorage simulation
   optInMarketing: boolean;
