@@ -6,23 +6,12 @@ import type { UserProfile, ProfileData } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import type { AuthError, Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { 
-  // Funções de usuário do localStorage não são mais primárias para auth, 
-  // mas podem ser necessárias para migração ou outras funcionalidades.
-  // Por enquanto, vamos focar na integração com Supabase.
-  // getUsersFromLocalStorage, 
-  // saveUsersToLocalStorage,
-  // getAuthenticatedUserFromLocalStorage, // Substituído por Supabase session
-  // saveAuthenticatedUserToLocalStorage, // Substituído por Supabase session
-  // removeAuthenticatedUserFromLocalStorage // Substituído por Supabase signOut
-} from '@/lib/localStorageService';
-
 
 export interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   login: (email: string, passwordAttempt: string) => Promise<{ success: boolean, error?: AuthError | null }>;
-  signup: (userData: { fullName: string; email: string; password?: string; optInMarketing: boolean; }) => Promise<{ success: boolean, error?: AuthError | null }>;
+  signup: (userData: { fullName: string; email: string; password?: string; }) => Promise<{ success: boolean, error?: AuthError | null }>;
   logout: () => Promise<void>;
   session: Session | null; // Adicionado para expor a sessão
 }
@@ -38,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = useCallback(async (authUser: SupabaseAuthUser): Promise<UserProfile | null> => {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('name, opt_in_marketing, couple_id')
+      .select('name, couple_id') // Removido opt_in_marketing
       .eq('id', authUser.id)
       .single();
 
@@ -50,8 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       id: authUser.id,
       email: authUser.email || '',
-      fullName: profile?.name || '', // Pegar nome do perfil
-      optInMarketing: profile?.opt_in_marketing || false,
+      fullName: profile?.name || '', 
       couple_id: profile?.couple_id || null,
     };
   }, []);
@@ -96,18 +84,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Login error:', error);
       return { success: false, error };
     }
-    // onAuthStateChange vai lidar com a atualização do estado do usuário/perfil
     return { success: true };
   }, []);
 
   const signup = useCallback(async (
-    userData: { fullName: string; email: string; password?: string; optInMarketing: boolean; }
+    userData: { fullName: string; email: string; password?: string; } // Removido optInMarketing
     ): Promise<{ success: boolean, error?: AuthError | null }> => {
     setIsLoading(true);
     if (!userData.password) {
       setIsLoading(false);
       console.error("Password is required for signup.");
-      // Retornar um objeto de erro compatível com AuthError do Supabase (simulado)
       return { success: false, error: { name: 'AuthApiError', message: 'Password is required', status: 400 } as AuthError };
     }
 
@@ -123,11 +109,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (authData.user) {
-      // Usuário criado no Supabase Auth, agora criar perfil em public.profiles
       const profileToInsert: ProfileData & { id: string } = {
         id: authData.user.id,
         name: userData.fullName,
-        opt_in_marketing: userData.optInMarketing,
         // couple_id pode ser definido posteriormente
       };
 
@@ -138,11 +122,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) {
         setIsLoading(false);
         console.error('Error creating profile:', profileError);
-        // Aqui pode ser necessário lidar com o caso de usuário criado no Auth mas perfil falhou
-        // Por simplicidade, retornamos o erro do perfil.
         return { success: false, error: { name: 'ProfileError', message: profileError.message, details: profileError.details } as AuthError };
       }
-      // onAuthStateChange vai lidar com a atualização do estado do usuário/perfil
     }
     setIsLoading(false);
     return { success: true };
@@ -154,9 +135,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) {
       console.error('Logout error:', error);
     }
-    setUser(null); // Limpa o usuário localmente também
+    setUser(null); 
     setSession(null);
-    router.push('/login'); // Redireciona após logout
+    router.push('/login'); 
     setIsLoading(false);
   }, [router]);
 

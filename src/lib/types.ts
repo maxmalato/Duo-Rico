@@ -6,7 +6,6 @@ export interface UserProfile {
   id: string; // UUID do Supabase Auth user
   fullName: string; // Da tabela 'profiles'
   email: string; // Do Supabase Auth user
-  optInMarketing?: boolean; // Da tabela 'profiles'
   couple_id?: string | null; // Da tabela 'profiles', para futuras implementações
   // createdAt é gerenciado pelo Supabase e pode ser acessado via auth.user.created_at
 }
@@ -16,7 +15,6 @@ export interface UserProfile {
 // Excluindo 'id' e 'email' que vêm diretamente do Supabase Auth user
 export interface ProfileData {
   name: string; // Corresponde a 'fullName'
-  opt_in_marketing?: boolean;
   couple_id?: string | null;
 }
 
@@ -53,6 +51,6 @@ export interface LegacyUser {
   fullName: string;
   email: string;
   password?: string; 
-  optInMarketing: boolean;
+  optInMarketing: boolean; // Mantido aqui apenas para LegacyUser, não mais usado no UserProfile
   createdAt: string;
 }

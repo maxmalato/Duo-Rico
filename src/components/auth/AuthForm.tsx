@@ -14,13 +14,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+// import { Checkbox } from "@/components/ui/checkbox"; // Checkbox não é mais necessário
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-// import type { UserProfile } from "@/lib/types"; // UserProfile não é diretamente usado aqui
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de e-mail inválido." }),
@@ -29,7 +28,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(1, { message: "Nome completo é obrigatório." }),
-  optInMarketing: z.boolean().default(false),
+  // optInMarketing: z.boolean().default(false), // Removido
 });
 
 type AuthFormProps = {
@@ -51,7 +50,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       ...(mode === "signup" && { 
         fullName: "",
-        optInMarketing: false 
+        // optInMarketing: false // Removido
       }),
     },
   });
@@ -73,14 +72,11 @@ export function AuthForm({ mode }: AuthFormProps) {
           fullName: signupValues.fullName,
           email: signupValues.email,
           password: signupValues.password,
-          optInMarketing: signupValues.optInMarketing,
+          // optInMarketing: signupValues.optInMarketing, // Removido
         });
         if (success) {
           toast({ title: "Cadastro Efetuado com Sucesso", description: "Bem-vindo(a) ao Duo Rico! Verifique seu e-mail para confirmação, se aplicável." });
-          // O Supabase pode enviar um e-mail de confirmação. O onAuthStateChange cuidará do redirecionamento após a confirmação, se necessário.
-          // Por enquanto, redirecionamos otimisticamente ou esperamos a confirmação.
-          // router.push("/dashboard"); // Pode ser melhor esperar a confirmação ou deixar o onAuthStateChange lidar com isso.
-           router.push("/login"); // Redirecionar para login após cadastro, para que o usuário confirme o e-mail se necessário.
+           router.push("/login"); 
         } else {
           toast({ title: "Falha no Cadastro", description: error?.message || "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
         }
@@ -136,7 +132,9 @@ export function AuthForm({ mode }: AuthFormProps) {
             </FormItem>
           )}
         />
-        {mode === "signup" && (
+        {/* 
+        // O campo optInMarketing foi removido
+        mode === "signup" && (
           <FormField
             control={form.control}
             name="optInMarketing"
@@ -156,7 +154,8 @@ export function AuthForm({ mode }: AuthFormProps) {
               </FormItem>
             )}
           />
-        )}
+        )
+        */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "login" ? "Entrar" : "Cadastrar"}
