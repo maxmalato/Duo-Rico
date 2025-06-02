@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Scale } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 
 interface FinancialOverviewProps {
   income: number;
@@ -44,7 +44,7 @@ export function FinancialOverview({ income, expenses, balance }: FinancialOvervi
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-primary">{formatCurrency(balance)}</div>
-          <p className="text-xs text-muted-foreground">Este mês</s_p>
+          <p className="text-xs text-muted-foreground">Este mês</p>
         </CardContent>
       </Card>
     </div>
