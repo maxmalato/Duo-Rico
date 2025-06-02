@@ -46,7 +46,7 @@ export default function DashboardPage() {
   return (
     <ProtectedPageLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Painel</h1>
         <FinancialOverview income={monthlyIncome} expenses={monthlyExpenses} balance={balance} />
         <RecentExpenses expenses={recentExpenses} />
       </div>

@@ -29,7 +29,7 @@ export function Header() {
       {isMobile && (
          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
             <Menu className="h-6 w-6" />
-            <span className="sr-only">Toggle sidebar</span>
+            <span className="sr-only">Alternar barra lateral</span>
           </Button>
       )}
       <div className="flex-1">
@@ -42,7 +42,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={`https://placehold.co/100x100.png?text=${getInitials(user.email)}`} alt={user.email} data-ai-hint="avatar user profile" />
+                <AvatarImage src={`https://placehold.co/100x100.png?text=${getInitials(user.email)}`} alt={user.email || "Usuário"} data-ai-hint="avatar user profile" />
                 <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
               </Avatar>
             </Button>
@@ -50,7 +50,7 @@ export function Header() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Signed in as</p>
+                <p className="text-sm font-medium leading-none">Conectado como</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user.email}
                 </p>
@@ -59,16 +59,16 @@ export function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <UserCircle className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>Configurações</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>Sair</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

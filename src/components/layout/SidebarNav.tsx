@@ -17,10 +17,10 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/income", label: "Income", icon: Wallet },
-  { href: "/expenses", label: "Expenses", icon: ArrowRightLeft },
-  // { href: "/settings", label: "Settings", icon: Settings }, // Example for future
+  { href: "/dashboard", label: "Painel", icon: LayoutDashboard, tooltip: "Painel" },
+  { href: "/income", label: "Receitas", icon: Wallet, tooltip: "Receitas" },
+  { href: "/expenses", label: "Despesas", icon: ArrowRightLeft, tooltip: "Despesas" },
+  // { href: "/settings", label: "Configurações", icon: Settings, tooltip: "Configurações" }, 
 ];
 
 export function SidebarNav() {
@@ -43,7 +43,7 @@ export function SidebarNav() {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
-                  tooltip={{children: item.label, side: "right"}}
+                  tooltip={{children: item.tooltip, side: "right"}}
                 >
                   <a>
                     <item.icon className="h-5 w-5" />

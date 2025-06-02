@@ -37,6 +37,10 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const { toast } = useToast();
 
+  const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
+  const typeInPortuguesePlural = type === 'income' ? 'receitas' : 'despesas';
+
+
   const handleDelete = (transaction: Transaction, delType: 'single' | 'future') => {
     setSelectedTransaction(transaction);
     setDeleteType(delType);
@@ -49,14 +53,14 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
     try {
       if (deleteType === 'single') {
         deleteTransactionFromLocalStorage(selectedTransaction.id);
-        toast({ title: "Deleted", description: `${type === 'income' ? 'Income' : 'Expense'} entry deleted.` });
+        toast({ title: "Excluído", description: `Lançamento de ${typeInPortugueseSingular} excluído.` });
       } else if (deleteType === 'future' && selectedTransaction.recurringGroupId) {
         deleteFutureRecurringTransactions(selectedTransaction.recurringGroupId, selectedTransaction.month, selectedTransaction.year);
-        toast({ title: "Deleted", description: `Future recurring ${type === 'income' ? 'income entries' : 'expense entries'} deleted.` });
+        toast({ title: "Excluído", description: `Futuros lançamentos recorrentes de ${typeInPortugueseSingular} excluídos.` });
       }
       onDelete(); // Refresh list
     } catch (error) {
-      toast({ title: "Error", description: `Failed to delete.`, variant: "destructive" });
+      toast({ title: "Erro", description: `Falha ao excluir.`, variant: "destructive" });
     } finally {
       setDialogOpen(false);
       setSelectedTransaction(null);
@@ -67,7 +71,7 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const getMonthName = (monthNumber: number) => MONTHS.find(m => m.value === monthNumber)?.label || 'N/A';
 
   if (transactions.length === 0) {
-    return <p className="text-muted-foreground mt-4 text-center">No {type} entries yet for the selected period. Add one to get started!</p>;
+    return <p className="text-muted-foreground mt-4 text-center">Nenhum lançamento de {typeInPortugueseSingular} ainda para o período selecionado. Adicione um para começar!</p>;
   }
 
   return (
@@ -75,12 +79,12 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Description</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="text-center">Recurring</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Descrição</TableHead>
+            <TableHead>Categoria</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="text-center">Recorrente</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -93,26 +97,26 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
                 {formatCurrency(transaction.amount)}
               </TableCell>
               <TableCell className="text-center">
-                {transaction.isRecurring ? `Yes (${transaction.installmentNumber}/${transaction.totalInstallments})` : 'No'}
+                {transaction.isRecurring ? `Sim (${transaction.installmentNumber}/${transaction.totalInstallments})` : 'Não'}
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
+                      <span className="sr-only">Abrir menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(transaction)}>
-                      <Edit className="mr-2 h-4 w-4" /> Edit
+                      <Edit className="mr-2 h-4 w-4" /> Editar
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDelete(transaction, 'single')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete This Entry
+                      <Trash2 className="mr-2 h-4 w-4" /> Excluir Este Lançamento
                     </DropdownMenuItem>
                     {transaction.isRecurring && (
                       <DropdownMenuItem onClick={() => handleDelete(transaction, 'future')}  className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                        <AlertTriangle className="mr-2 h-4 w-4" /> Delete Future Entries
+                        <AlertTriangle className="mr-2 h-4 w-4" /> Excluir Lançamentos Futuros
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -126,16 +130,16 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteType === 'single' && "This action will permanently delete this transaction entry. This cannot be undone."}
-              {deleteType === 'future' && "This action will permanently delete this and all future entries for this recurring transaction. This cannot be undone."}
+              {deleteType === 'single' && "Esta ação excluirá permanentemente este lançamento. Isso não pode ser desfeito."}
+              {deleteType === 'future' && "Esta ação excluirá permanentemente este e todos os futuros lançamentos desta transação recorrente. Isso não pode ser desfeito."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-              Delete
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

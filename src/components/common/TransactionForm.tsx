@@ -27,9 +27,9 @@ import { addTransactionToLocalStorage, updateTransactionInLocalStorage } from "@
 import { useAuth } from "@/hooks/useAuth";
 
 const transactionFormSchema = z.object({
-  description: z.string().min(1, "Description is required."),
-  amount: z.coerce.number().positive("Amount must be positive."),
-  category: z.string().min(1, "Category is required."),
+  description: z.string().min(1, "Descrição é obrigatória."),
+  amount: z.coerce.number().positive("O valor deve ser positivo."),
+  category: z.string().min(1, "Categoria é obrigatória."),
   month: z.coerce.number().min(1).max(12),
   year: z.coerce.number(),
   isRecurring: z.boolean().default(false),
@@ -50,6 +50,9 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  const typeInPortuguese = type === 'income' ? 'Receita' : 'Despesa';
+  const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
@@ -76,14 +79,14 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
 
   async function onSubmit(values: TransactionFormValues) {
     if (!user) {
-      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
       return;
     }
     setIsLoading(true);
 
     try {
       if (values.isRecurring && (!values.installments || values.installments < 1)) {
-        form.setError("installments", { type: "manual", message: "Installments must be at least 1 for recurring transactions." });
+        form.setError("installments", { type: "manual", message: "Parcelas devem ser no mínimo 1 para transações recorrentes." });
         setIsLoading(false);
         return;
       }
@@ -103,7 +106,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
           const transactionDate = new Date(values.year, values.month -1 + i); // month is 0-indexed
           const transaction: Transaction = {
             ...baseTransactionData,
-            id: existingTransaction && i === 0 ? existingTransaction.id : crypto.randomUUID(), // Preserve ID for first installment if editing
+            id: existingTransaction && i === 0 ? existingTransaction.id : crypto.randomUUID(), 
             month: transactionDate.getMonth() + 1,
             year: transactionDate.getFullYear(),
             isRecurring: true,
@@ -111,16 +114,13 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             installmentNumber: i + 1,
             totalInstallments: values.installments,
           };
-          // For simplicity, if editing a recurring transaction, we assume it replaces the old series.
-          // A more complex system would handle updating individual installments or the series.
-          // Here we are just creating new ones or one.
           if (existingTransaction && i===0) {
-             updateTransactionInLocalStorage(transaction); // Update the first one
+             updateTransactionInLocalStorage(transaction); 
           } else {
-             addTransactionToLocalStorage(transaction); // Add subsequent or new ones
+             addTransactionToLocalStorage(transaction); 
           }
         }
-         toast({ title: `${type === 'income' ? 'Income' : 'Expense'} Series ${existingTransaction ? 'Updated' : 'Added'}`, description: `${values.description} series handled successfully.` });
+         toast({ title: `Série de ${typeInPortugueseSingular} ${existingTransaction ? 'Atualizada' : 'Adicionada'}`, description: `Série ${values.description} processada com sucesso.` });
 
       } else {
         const transaction: Transaction = {
@@ -135,12 +135,12 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         } else {
           addTransactionToLocalStorage(transaction);
         }
-        toast({ title: `${type === 'income' ? 'Income' : 'Expense'} ${existingTransaction ? 'Updated' : 'Added'}`, description: `${values.description} handled successfully.` });
+        toast({ title: `${typeInPortuguese} ${existingTransaction ? 'Atualizada' : 'Adicionada'}`, description: `${values.description} processada com sucesso.` });
       }
 
-      onFormSubmit(); // Refresh the list
-      dialogClose?.(); // Close the dialog
-      form.reset(existingTransaction ? undefined : { // Reset to new defaults or keep editing
+      onFormSubmit(); 
+      dialogClose?.(); 
+      form.reset(existingTransaction ? undefined : { 
         description: "", amount: 0, category: "", 
         month: new Date().getMonth() + 1, year: CURRENT_YEAR, 
         isRecurring: false, installments: 1
@@ -148,7 +148,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
 
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast({ title: "Error", description: `Failed to ${existingTransaction ? 'update' : 'add'} ${type}.`, variant: "destructive" });
+      toast({ title: "Erro", description: `Falha ao ${existingTransaction ? 'atualizar' : 'adicionar'} ${typeInPortugueseSingular}.`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -162,9 +162,9 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Descrição</FormLabel>
               <FormControl>
-                <Input placeholder={`e.g., Monthly Salary, Groceries`} {...field} />
+                <Input placeholder={`Ex: Salário Mensal, Compras`} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,7 +176,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount ($)</FormLabel>
+                <FormLabel>Valor ($)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
@@ -189,11 +189,11 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Categoria</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -213,11 +213,11 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="month"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Month</FormLabel>
+                <FormLabel>Mês</FormLabel>
                 <Select onValueChange={(val) => field.onChange(parseInt(val))} defaultValue={String(field.value)}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select month" />
+                      <SelectValue placeholder="Selecione o mês" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -235,11 +235,11 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="year"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Year</FormLabel>
+                <FormLabel>Ano</FormLabel>
                 <Select onValueChange={(val) => field.onChange(parseInt(val))} defaultValue={String(field.value)}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select year" />
+                      <SelectValue placeholder="Selecione o ano" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -265,7 +265,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
                 />
               </FormControl>
               <FormLabel className="font-normal">
-                Is this a recurring {type}?
+                Esta é uma {typeInPortugueseSingular} recorrente?
               </FormLabel>
             </FormItem>
           )}
@@ -276,13 +276,13 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             name="installments"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Number of Installments (up to 48)</FormLabel>
+                <FormLabel>Número de Parcelas (até 48)</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" max="48" placeholder="e.g., 12" {...field} 
+                  <Input type="number" min="1" max="48" placeholder="Ex: 12" {...field} 
                   onChange={(e) => field.onChange(parseInt(e.target.value))} />
                 </FormControl>
                 <FormDescription>
-                  This {type} will be repeated for this many months.
+                  Esta {typeInPortugueseSingular} será repetida por esta quantidade de meses.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -291,7 +291,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         )}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (existingTransaction ? <Edit3 className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />)}
-          {existingTransaction ? `Update ${type}` : `Add ${type}`}
+          {existingTransaction ? `Atualizar ${typeInPortuguese}` : `Adicionar ${typeInPortuguese}`}
         </Button>
       </form>
     </Form>

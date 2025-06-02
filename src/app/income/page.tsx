@@ -44,8 +44,8 @@ export default function IncomePage() {
   }, [allIncome, filterMonth, filterYear]);
 
   const handleFormSubmit = () => {
-    fetchIncome(); // Refreshes the list
-    // setIsDialogOpen(false); // Dialog will be closed by TransactionForm's dialogClose prop
+    fetchIncome(); 
+    // setIsDialogOpen(false); 
     // setEditingTransaction(undefined);
   };
   
@@ -61,21 +61,22 @@ export default function IncomePage() {
   
   const totalFilteredIncome = filteredIncome.reduce((sum, t) => sum + t.amount, 0);
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const currentMonthLabel = MONTHS.find(m => m.value === filterMonth)?.label || "";
 
   return (
     <ProtectedPageLayout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-3xl font-bold">Income Management</h1>
+          <h1 className="text-3xl font-bold">Gerenciamento de Receitas</h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddDialog} className="w-full md:w-auto">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Income
+                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Receita
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingTransaction ? 'Edit' : 'Add New'} Income</DialogTitle>
+                <DialogTitle>{editingTransaction ? 'Editar' : 'Adicionar Nova'} Receita</DialogTitle>
               </DialogHeader>
               <TransactionForm
                 type="income"
@@ -90,13 +91,13 @@ export default function IncomePage() {
 
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Filter & Summary</CardTitle>
+            <CardTitle>Filtro e Resumo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4 items-center">
               <Select onValueChange={(val) => setFilterMonth(parseInt(val))} defaultValue={String(filterMonth)}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Select Month" />
+                  <SelectValue placeholder="Selecione o Mês" />
                 </SelectTrigger>
                 <SelectContent>
                   {MONTHS.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
@@ -104,7 +105,7 @@ export default function IncomePage() {
               </Select>
               <Select onValueChange={(val) => setFilterYear(parseInt(val))} defaultValue={String(filterYear)}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Select Year" />
+                  <SelectValue placeholder="Selecione o Ano" />
                 </SelectTrigger>
                 <SelectContent>
                   {YEARS.map(y => <SelectItem key={y.value} value={String(y.value)}>{y.label}</SelectItem>)}
@@ -112,7 +113,7 @@ export default function IncomePage() {
               </Select>
             </div>
             <p className="text-lg font-semibold">
-              Total Income for {MONTHS.find(m=>m.value === filterMonth)?.label} {filterYear}: 
+              Total de Receitas para {currentMonthLabel} {filterYear}: 
               <span className="text-accent ml-2">{formatCurrency(totalFilteredIncome)}</span>
             </p>
           </CardContent>
@@ -120,7 +121,7 @@ export default function IncomePage() {
         
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Income Entries</CardTitle>
+            <CardTitle>Lançamentos de Receitas</CardTitle>
           </CardHeader>
           <CardContent>
             <TransactionList

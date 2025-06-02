@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Duo Rico',
-  description: 'Manage your finances as a couple.',
+  description: 'Gerencie suas finanças como um casal.',
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}

@@ -22,8 +22,8 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  email: z.string().email({ message: "Endereço de e-mail inválido." }),
+  password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres." }),
 });
 
 const signupSchema = loginSchema.extend({
@@ -57,10 +57,10 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (mode === "login") {
         const success = await login(values.email, values.password);
         if (success) {
-          toast({ title: "Login Successful", description: "Welcome back!" });
+          toast({ title: "Login Efetuado com Sucesso", description: "Bem-vindo(a) de volta!" });
           router.push("/dashboard");
         } else {
-          toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+          toast({ title: "Falha no Login", description: "E-mail ou senha inválidos.", variant: "destructive" });
         }
       } else if (mode === "signup") {
         const signupValues = values as z.infer<typeof signupSchema>;
@@ -70,14 +70,14 @@ export function AuthForm({ mode }: AuthFormProps) {
           optInMarketing: signupValues.optInMarketing,
         });
         if (success) {
-          toast({ title: "Signup Successful", description: "Welcome to Duo Rico!" });
+          toast({ title: "Cadastro Efetuado com Sucesso", description: "Bem-vindo(a) ao Duo Rico!" });
           router.push("/dashboard");
         } else {
-          toast({ title: "Signup Failed", description: "User already exists or an error occurred.", variant: "destructive" });
+          toast({ title: "Falha no Cadastro", description: "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
         }
       }
     } catch (error) {
-      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Erro", description: "Ocorreu um erro inesperado.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -91,9 +91,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" {...field} />
+                <Input placeholder="voce@exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,7 +104,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Senha</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
@@ -126,7 +126,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <FormLabel>
-                    Opt-in for marketing communications
+                    Aceito receber comunicações de marketing
                   </FormLabel>
                 </div>
               </FormItem>
@@ -135,7 +135,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         )}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === "login" ? "Log In" : "Sign Up"}
+          {mode === "login" ? "Entrar" : "Cadastrar"}
         </Button>
       </form>
     </Form>

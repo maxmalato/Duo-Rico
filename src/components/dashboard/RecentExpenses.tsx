@@ -5,6 +5,7 @@ import type { Transaction } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { MONTHS } from "@/lib/constants"; // Import MONTHS
 
 interface RecentExpensesProps {
   expenses: Transaction[];
@@ -15,19 +16,22 @@ const formatCurrency = (amount: number) => {
 };
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const date = new Date(dateString);
+  // Find month label from constants
+  const monthLabel = MONTHS.find(m => m.value === date.getMonth() + 1)?.label.substring(0,3) || (date.getMonth() + 1).toString().padStart(2, '0');
+  return `${date.getDate()} ${monthLabel}`; // e.g., 15 Jan
 };
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle>Recent Expenses</CardTitle>
-        <CardDescription>Your last three recorded expenses.</CardDescription>
+        <CardTitle>Despesas Recentes</CardTitle>
+        <CardDescription>Suas últimas três despesas registradas.</CardDescription>
       </CardHeader>
       <CardContent>
         {expenses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No recent expenses to display.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma despesa recente para exibir.</p>
         ) : (
           <ScrollArea className="h-[200px]">
             <ul className="space-y-3">
