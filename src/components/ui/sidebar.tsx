@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -154,7 +154,7 @@ interface SidebarProps extends React.ComponentProps<"div"> {
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
-  defaultOpen?: boolean; // Explicitly define defaultOpen
+  defaultOpen?: boolean;
 }
 
 const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
@@ -165,8 +165,8 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       collapsible = "offcanvas",
       className,
       children,
-      defaultOpen, // Destructure defaultOpen
-      ...props // ...props now does not contain defaultOpen, side, variant, collapsible
+      defaultOpen, 
+      ...props 
     },
     ref
   ) => {
@@ -192,8 +192,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         <Sheet 
           open={openMobile} 
           onOpenChange={setOpenMobile} 
-          defaultOpen={defaultOpen} // Pass destructured defaultOpen to Sheet
-          {...props} // Pass remaining div props
+          defaultOpen={defaultOpen}
         >
           <SheetContent
             data-sidebar="sidebar"
@@ -204,9 +203,13 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
               } as React.CSSProperties
             }
-            side={side} // Use the destructured `side` for SheetContent
+            side={side} 
+            // Removed {...props} from SheetContent as it was spreading div props here
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <SheetHeader className="p-4 border-b border-sidebar-border">
+              <SheetTitle>Menu Principal</SheetTitle>
+            </SheetHeader>
+            {children}
           </SheetContent>
         </Sheet>
       )
@@ -220,7 +223,6 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
-        // No {...props} here for the outer div
       >
         <div
           className={cn(
@@ -243,7 +245,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
-          {...props} // Spread remaining props (which no longer includes defaultOpen)
+          {...props} 
         >
           <div
             data-sidebar="sidebar"
