@@ -75,11 +75,18 @@ export function AuthForm({ mode }: AuthFormProps) {
           toast({ title: "Cadastro Efetuado com Sucesso", description: "Você será redirecionado(a) para a tela de login." });
            router.push("/login"); 
         } else {
-          toast({ title: "Falha no Cadastro", description: error?.message || "Usuário já existe ou ocorreu um erro.", variant: "destructive" });
+          // Use a more specific message if it's a ProfileError, otherwise default
+          const description = error?.name === 'ProfileError' 
+            ? error.message // This will be the detailed message from AuthContext
+            : error?.message || "Usuário já existe ou ocorreu um erro ao tentar cadastrar.";
+          toast({ title: "Falha no Cadastro", description: description, variant: "destructive" });
+          if(error?.name !== 'ProfileError' && error?.message?.includes('User already registered')) {
+             console.warn("Tentativa de cadastro com e-mail já existente:", signupValues.email);
+          }
         }
       }
     } catch (error: any) {
-      toast({ title: "Erro", description: error?.message || "Ocorreu um erro inesperado.", variant: "destructive" });
+      toast({ title: "Erro Inesperado", description: error?.message || "Ocorreu um erro inesperado durante a operação.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

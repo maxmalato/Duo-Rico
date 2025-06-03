@@ -4,7 +4,7 @@ import type React from 'react';
 import { createContext, useState, useEffect, useCallback } from 'react';
 import type { UserProfile, ProfileData } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
-import type { AuthError, Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
+import type { AuthError, Session, User as SupabaseAuthUser, PostgrestError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
 export interface AuthContextType {
@@ -117,18 +117,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert(profileToInsert);
+        .insert(profileToInsert) as { error: PostgrestError | null }; // Explicitly type profileError
 
       if (profileError) {
         setIsLoading(false);
         console.error('Error creating profile. Supabase error:', JSON.stringify(profileError, null, 2));
+        
+        // Construct a more detailed error message for the client
+        let clientErrorMessage = 'Não foi possível criar o perfil de usuário após o registro. ';
+        clientErrorMessage += `Detalhe do Supabase: ${profileError.message || 'Erro desconhecido.'}`;
+        if (profileError.code) {
+          clientErrorMessage += ` (Código: ${profileError.code})`;
+        }
+        if (profileError.details) {
+          clientErrorMessage += ` Detalhes: ${profileError.details}`;
+        }
+        clientErrorMessage += ' Por favor, verifique as RLS policies e a estrutura da tabela "profiles" no Supabase.';
+
         return { 
           success: false, 
           error: { 
-            name: 'ProfileError', 
-            message: profileError.message || 'Ocorreu um erro desconhecido ao criar o perfil.', 
-            details: profileError.details 
-          } as AuthError 
+            name: 'ProfileError', // Custom name to identify profile creation errors
+            message: clientErrorMessage,
+            // Supabase's AuthError has specific fields, we're creating a similar structure
+            // 'details' and 'code' might not directly map to AuthError fields but are useful for our custom error
+          } as unknown as AuthError // Cast to AuthError, acknowledge it's a custom structure for 'message'
         };
       }
     }
