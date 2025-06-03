@@ -33,14 +33,16 @@ export default function DashboardPage() {
         .filter(t => t.type === 'expense' && t.month === filterMonth && t.year === filterYear)
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const lastThreeExpenses = transactions
-        .filter(t => t.type === 'expense')
+      const expensesForSelectedPeriod = transactions
+        .filter(t => t.type === 'expense' && t.month === filterMonth && t.year === filterYear);
+
+      const lastThreeExpensesFromPeriod = expensesForSelectedPeriod
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 3);
       
       setMonthlyIncome(incomeCurrentPeriod);
       setMonthlyExpenses(expensesCurrentPeriod);
-      setRecentExpensesList(lastThreeExpenses);
+      setRecentExpensesList(lastThreeExpensesFromPeriod);
     }
   }, [user, filterMonth, filterYear]);
 

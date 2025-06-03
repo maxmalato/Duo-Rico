@@ -24,11 +24,11 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>Despesas Recentes</CardTitle>
-        <CardDescription>Suas últimas três despesas registradas.</CardDescription>
+        <CardDescription>Suas últimas três despesas registradas para o período selecionado.</CardDescription>
       </CardHeader>
       <CardContent>
         {expenses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma despesa recente para exibir.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma despesa recente para exibir para o período selecionado.</p>
         ) : (
           <ScrollArea className="h-[200px]">
             <ul className="space-y-3">
