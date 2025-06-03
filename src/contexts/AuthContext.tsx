@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = useCallback(async (authUser: SupabaseAuthUser): Promise<UserProfile | null> => {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('name, couple_id') // Removido opt_in_marketing
+      .select('name, couple_id')
       .eq('id', authUser.id)
       .single();
 
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signup = useCallback(async (
-    userData: { fullName: string; email: string; password?: string; } // Removido optInMarketing
+    userData: { fullName: string; email: string; password?: string; }
     ): Promise<{ success: boolean, error?: AuthError | null }> => {
     setIsLoading(true);
     if (!userData.password) {
@@ -121,8 +121,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         setIsLoading(false);
-        console.error('Error creating profile:', profileError);
-        return { success: false, error: { name: 'ProfileError', message: profileError.message, details: profileError.details } as AuthError };
+        console.error('Error creating profile. Supabase error:', JSON.stringify(profileError, null, 2));
+        return { 
+          success: false, 
+          error: { 
+            name: 'ProfileError', 
+            message: profileError.message || 'Ocorreu um erro desconhecido ao criar o perfil.', 
+            details: profileError.details 
+          } as AuthError 
+        };
       }
     }
     setIsLoading(false);
