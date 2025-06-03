@@ -1,3 +1,4 @@
+
 // src/components/common/TransactionForm.tsx
 "use client";
 
@@ -27,7 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const transactionFormSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória."),
-  amount: z.coerce.number().positive("O valor deve ser positivo."),
+  amount: z.coerce.number({invalid_type_error: "Valor deve ser um número."}).positive("O valor deve ser positivo.").finite("O valor deve ser finito."),
   category: z.string().min(1, "Categoria é obrigatória."),
   month: z.coerce.number().min(1).max(12),
   year: z.coerce.number(),
@@ -62,19 +63,41 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       month: existingTransaction.month,
       year: existingTransaction.year,
       isRecurring: existingTransaction.isRecurring || false,
-      installments: existingTransaction.totalInstallments || undefined, // Use undefined if not set, schema handles min
+      installments: existingTransaction.totalInstallments || undefined, 
     } : {
       description: "",
-      amount: 0,
+      amount: undefined, // Initialize as undefined so placeholder shows
       category: "",
       month: new Date().getMonth() + 1,
       year: CURRENT_YEAR,
       isRecurring: false,
-      installments: undefined, // Default to undefined, schema handles min if recurring
+      installments: undefined, 
     },
   });
 
   const isRecurring = form.watch("isRecurring");
+
+  // Helper to format the numeric value (e.g., 8.88) to a display string (e.g., "8,88")
+  const formatAmountForDisplay = (value: number | undefined): string => {
+    if (value === undefined || isNaN(value)) {
+      return '';
+    }
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // Helper to parse the display string (e.g., "8,88" or "888") to a numeric value (e.g., 8.88)
+  const parseDisplayToAmount = (displayValue: string): number | undefined => {
+    const digits = displayValue.replace(/\D/g, ''); // Remove all non-digits
+    if (digits === '') {
+      return undefined;
+    }
+    const numericValueInCents = parseInt(digits, 10);
+    return numericValueInCents / 100; // Convert cents to Reais
+  };
+
 
   async function onSubmit(values: TransactionFormValues) {
     if (!user) {
@@ -85,7 +108,6 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
 
     try {
       if (values.isRecurring && (!values.installments || values.installments < 1)) {
-        // Zod schema should catch this, but an extra check can be here if needed
         form.setError("installments", { type: "manual", message: "Parcelas devem ser no mínimo 1 para transações recorrentes." });
         setIsLoading(false);
         return;
@@ -95,13 +117,17 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         userId: user.id,
         type,
         description: values.description,
-        amount: values.amount,
+        amount: values.amount, // amount is already the correct numeric value
         category: values.category,
         createdAt: existingTransaction ? existingTransaction.createdAt : new Date().toISOString(),
       };
 
       if (values.isRecurring && values.installments && values.installments > 0) {
         const recurringGroupId = existingTransaction?.recurringGroupId || crypto.randomUUID();
+        // Delete existing recurring transactions if editing and installments changed
+        // This part is complex and depends on how updates to recurring series should be handled.
+        // For simplicity, this example might overwrite or create new series.
+        // A more robust solution would manage updates to individual installments or the series.
         for (let i = 0; i < values.installments; i++) {
           const transactionDate = new Date(values.year, values.month -1 + i); 
           const transaction: Transaction = {
@@ -128,7 +154,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
           id: existingTransaction?.id || crypto.randomUUID(),
           month: values.month,
           year: values.year,
-          isRecurring: false,
+          isRecurring: false, // Explicitly false if not recurring or installments not set
         };
         if (existingTransaction) {
           updateTransactionInLocalStorage(transaction);
@@ -141,7 +167,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       onFormSubmit(); 
       dialogClose?.(); 
       form.reset({ 
-        description: "", amount: 0, category: "", 
+        description: "", amount: undefined, category: "", 
         month: new Date().getMonth() + 1, year: CURRENT_YEAR, 
         isRecurring: false, installments: undefined
       });
@@ -179,13 +205,14 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
                 <FormLabel>Valor (R$)</FormLabel>
                 <FormControl>
                   <Input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0.00" 
-                    inputMode="decimal"
-                    {...field}
-                    value={isNaN(field.value) ? '' : field.value}
-                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                    type="text" // Changed to text for custom formatting
+                    inputMode="decimal" // Hint for mobile numeric keyboard
+                    placeholder="0,00" 
+                    value={formatAmountForDisplay(field.value)}
+                    onChange={(e) => {
+                      const numericValue = parseDisplayToAmount(e.target.value);
+                      field.onChange(numericValue);
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -297,7 +324,7 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
                   />
                 </FormControl>
                 <FormDescription>
-                  Esta {typeInPortugueseSingular} será repetida por esta quantidade de meses. Se não for recorrente, deixe em branco ou 1.
+                  Esta {typeInPortugueseSingular} será repetida por esta quantidade de meses. Se for uma transação única, pode deixar este campo em branco ou com o valor 1 caso não seja recorrente.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -312,3 +339,4 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
     </Form>
   );
 }
+
