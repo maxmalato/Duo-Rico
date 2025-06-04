@@ -1,3 +1,4 @@
+
 // src/app/income/page.tsx
 "use client";
 
@@ -8,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import { INCOME_CATEGORIES, MONTHS, CURRENT_YEAR, YEARS } from "@/lib/constants";
-import { getTransactionsFromLocalStorage } from "@/lib/localStorageService";
+// Atualizado para usar o novo serviço (que agora interage com Supabase)
+import { getTransactions } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
 import { useAuth } from "@/hooks/useAuth";
 import type { Transaction } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
@@ -22,21 +24,24 @@ export default function IncomePage() {
   const [filteredIncome, setFilteredIncome] = useState<Transaction[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
-  
+
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(CURRENT_YEAR);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
-  const fetchIncome = useCallback(() => {
+
+  const fetchIncome = useCallback(async () => {
     if (user) {
-      const allTransactions = getTransactionsFromLocalStorage();
+      setIsLoadingTransactions(true);
+      const allTransactions = await getTransactions(); // Agora é async
       let userVisibleTransactions: Transaction[];
 
-      if (user.couple_id) {
-        userVisibleTransactions = allTransactions.filter(t => t.type === 'income' && t.couple_id === user.couple_id);
-      } else {
-        userVisibleTransactions = allTransactions.filter(t => t.type === 'income' && t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id) );
-      }
+      // A lógica de filtragem por couple_id ou user_id já é feita pelas RLS do Supabase.
+      // Aqui apenas filtramos por tipo 'income'.
+      userVisibleTransactions = allTransactions.filter(t => t.type === 'income');
+
       setAllIncome(userVisibleTransactions);
+      setIsLoadingTransactions(false);
     }
   }, [user]);
 
@@ -51,25 +56,23 @@ export default function IncomePage() {
   }, [allIncome, filterMonth, filterYear]);
 
   const handleFormSubmit = () => {
-    fetchIncome(); 
+    fetchIncome();
   };
-  
+
   const openAddDialog = () => {
     setEditingTransaction(undefined);
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (transaction: Transaction) => {
-    // Permissão: usuário atual pode editar se a transação pertencer ao seu couple_id ou diretamente a ele
-    if (user && ((user.couple_id && transaction.couple_id === user.couple_id) || transaction.userId === user.id)) {
+    if (user && ((user.couple_id && transaction.couple_id === user.couple_id && transaction.couple_id !== null) || transaction.user_id === user.id)) {
       setEditingTransaction(transaction);
       setIsDialogOpen(true);
     } else {
-      // Idealmente, mostrar um toast de "não permitido"
       console.warn("Tentativa de editar transação não permitida.");
     }
   };
-  
+
   const totalFilteredIncome = filteredIncome.reduce((sum, t) => sum + t.amount, 0);
   const currentMonthLabel = MONTHS.find(m => m.value === filterMonth)?.label || "";
 
@@ -93,7 +96,7 @@ export default function IncomePage() {
                 categories={INCOME_CATEGORIES}
                 existingTransaction={editingTransaction}
                 onFormSubmit={handleFormSubmit}
-                dialogClose={() => setIsDialogOpen(false)} 
+                dialogClose={() => setIsDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
@@ -123,23 +126,29 @@ export default function IncomePage() {
               </Select>
             </div>
             <p className="text-lg font-semibold">
-              Total de Receitas para {currentMonthLabel} {filterYear}: 
+              Total de Receitas para {currentMonthLabel} {filterYear}:
               <span className="text-accent ml-2">{formatCurrencyBRL(totalFilteredIncome)}</span>
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Lançamentos de Receitas</CardTitle>
           </CardHeader>
           <CardContent>
-            <TransactionList
-              transactions={filteredIncome}
-              type="income"
-              onEdit={openEditDialog}
-              onDelete={handleFormSubmit} // A lógica de permissão de delete está no TransactionList
-            />
+            {isLoadingTransactions ? (
+              <div className="flex justify-center items-center h-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <TransactionList
+                transactions={filteredIncome}
+                type="income"
+                onEdit={openEditDialog}
+                onDelete={handleFormSubmit}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

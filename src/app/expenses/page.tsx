@@ -1,3 +1,4 @@
+
 // src/app/expenses/page.tsx
 "use client";
 
@@ -6,9 +7,10 @@ import { TransactionForm } from "@/components/common/TransactionForm";
 import { TransactionList } from "@/components/common/TransactionList";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import { EXPENSE_CATEGORIES, MONTHS, CURRENT_YEAR, YEARS } from "@/lib/constants";
-import { getTransactionsFromLocalStorage } from "@/lib/localStorageService";
+// Atualizado para usar o novo serviço (que agora interage com Supabase)
+import { getTransactions } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
 import { useAuth } from "@/hooks/useAuth";
 import type { Transaction } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
@@ -25,18 +27,20 @@ export default function ExpensesPage() {
 
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(CURRENT_YEAR);
-  
-  const fetchExpenses = useCallback(() => {
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+
+  const fetchExpenses = useCallback(async () => {
     if (user) {
-      const allTransactions = getTransactionsFromLocalStorage();
+      setIsLoadingTransactions(true);
+      const allTransactions = await getTransactions(); // Agora é async
       let userVisibleTransactions: Transaction[];
 
-      if (user.couple_id) {
-        userVisibleTransactions = allTransactions.filter(t => t.type === 'expense' && t.couple_id === user.couple_id);
-      } else {
-        userVisibleTransactions = allTransactions.filter(t => t.type === 'expense' && t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id));
-      }
+      // A lógica de filtragem por couple_id ou user_id já é feita pelas RLS do Supabase.
+      // Aqui apenas filtramos por tipo 'expense'.
+      userVisibleTransactions = allTransactions.filter(t => t.type === 'expense');
+
       setAllExpenses(userVisibleTransactions);
+      setIsLoadingTransactions(false);
     }
   }, [user]);
 
@@ -51,7 +55,7 @@ export default function ExpensesPage() {
   }, [allExpenses, filterMonth, filterYear]);
 
   const handleFormSubmit = () => {
-    fetchExpenses(); 
+    fetchExpenses();
   };
 
   const openAddDialog = () => {
@@ -60,7 +64,7 @@ export default function ExpensesPage() {
   };
 
   const openEditDialog = (transaction: Transaction) => {
-    if (user && ((user.couple_id && transaction.couple_id === user.couple_id) || transaction.userId === user.id)) {
+    if (user && ((user.couple_id && transaction.couple_id === user.couple_id && transaction.couple_id !==null) || transaction.user_id === user.id)) {
       setEditingTransaction(transaction);
       setIsDialogOpen(true);
     } else {
@@ -91,7 +95,7 @@ export default function ExpensesPage() {
                 categories={EXPENSE_CATEGORIES}
                 existingTransaction={editingTransaction}
                 onFormSubmit={handleFormSubmit}
-                dialogClose={() => setIsDialogOpen(false)} 
+                dialogClose={() => setIsDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
@@ -121,7 +125,7 @@ export default function ExpensesPage() {
               </Select>
             </div>
             <p className="text-lg font-semibold">
-              Total de Despesas para {currentMonthLabel} {filterYear}: 
+              Total de Despesas para {currentMonthLabel} {filterYear}:
               <span className="text-destructive ml-2">{formatCurrencyBRL(totalFilteredExpenses)}</span>
             </p>
           </CardContent>
@@ -132,12 +136,18 @@ export default function ExpensesPage() {
             <CardTitle>Lançamentos de Despesas</CardTitle>
           </CardHeader>
           <CardContent>
-            <TransactionList
-              transactions={filteredExpenses}
-              type="expense"
-              onEdit={openEditDialog}
-              onDelete={handleFormSubmit} // A lógica de permissão de delete está no TransactionList
-            />
+            {isLoadingTransactions ? (
+              <div className="flex justify-center items-center h-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <TransactionList
+                transactions={filteredExpenses}
+                type="expense"
+                onEdit={openEditDialog}
+                onDelete={handleFormSubmit}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

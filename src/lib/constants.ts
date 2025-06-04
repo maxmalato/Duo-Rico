@@ -1,9 +1,9 @@
 
 import type { Category } from './types';
 
-export const LOCAL_STORAGE_USERS_KEY = 'duoRicoUsers';
-export const LOCAL_STORAGE_TRANSACTIONS_KEY = 'duoRicoTransactions';
-export const LOCAL_STORAGE_AUTH_USER_KEY = 'duoRicoAuthUser';
+// Removidas: LOCAL_STORAGE_USERS_KEY, LOCAL_STORAGE_TRANSACTIONS_KEY, LOCAL_STORAGE_AUTH_USER_KEY
+// Essas chaves não são mais necessárias pois os perfis de usuário são gerenciados pelo AuthContext (Supabase Auth)
+// e as transações serão movidas para o Supabase.
 
 export const INCOME_CATEGORIES: Category[] = [
   { value: 'bonus', label: 'Bônus' },
@@ -63,4 +63,3 @@ export const getCategoryLabel = (value: string, type: 'income' | 'expense'): str
   const category = categories.find(cat => cat.value === value);
   return category ? category.label : value.replace(/_/g, " ");
 };
-

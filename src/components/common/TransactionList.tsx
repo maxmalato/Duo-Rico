@@ -19,11 +19,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { deleteTransactionFromLocalStorage, deleteFutureRecurringTransactions } from "@/lib/localStorageService";
+// Atualizado para usar o novo serviço (que agora interage com Supabase)
+import { deleteTransaction, deleteFutureRecurringTransactions } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
 import { useToast } from "@/hooks/use-toast";
 import { MONTHS, getCategoryLabel } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth"; // Importar useAuth
+import { useAuth } from "@/hooks/useAuth";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -37,16 +38,17 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const [deleteType, setDeleteType] = useState<'single' | 'future' | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth(); // Obter usuário atual
+  const { user } = useAuth();
 
   const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
 
+  // A lógica de permissão é baseada nas RLS policies do Supabase.
+  // O front-end pode fazer uma checagem similar para habilitar/desabilitar UI,
+  // mas a segurança real é no backend (Supabase RLS).
   const canPerformAction = (transaction: Transaction): boolean => {
     if (!user) return false;
-    // Usuário pode editar/excluir se a transação pertencer ao seu couple_id
-    // OU se a transação pertencer diretamente a ele (e não houver couple_id ou o couple_id da transação for o seu)
-    return (user.couple_id && transaction.couple_id === user.couple_id) || 
-           (transaction.userId === user.id && (!transaction.couple_id || transaction.couple_id === user.couple_id));
+    return (user.couple_id && transaction.couple_id === user.couple_id && transaction.couple_id !== null) ||
+           (transaction.user_id === user.id);
   };
 
   const handleDelete = (transaction: Transaction, delType: 'single' | 'future') => {
@@ -59,27 +61,33 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
     setDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => { // Agora é async
     if (!selectedTransaction || !deleteType) return;
 
+    let success = false;
     try {
       if (deleteType === 'single') {
-        deleteTransactionFromLocalStorage(selectedTransaction.id);
-        toast({ title: "Excluído", description: `Lançamento de ${typeInPortugueseSingular} excluído.` });
+        success = await deleteTransaction(selectedTransaction.id); // Agora é async
+        if (success) toast({ title: "Excluído", description: `Lançamento de ${typeInPortugueseSingular} excluído.` });
       } else if (deleteType === 'future' && selectedTransaction.recurringGroupId) {
-        deleteFutureRecurringTransactions(selectedTransaction.recurringGroupId, selectedTransaction.month, selectedTransaction.year);
-        toast({ title: "Excluído", description: `Futuros lançamentos recorrentes de ${typeInPortugueseSingular} excluídos.` });
+        success = await deleteFutureRecurringTransactions(selectedTransaction.recurringGroupId, selectedTransaction.month, selectedTransaction.year); // Agora é async
+        if (success) toast({ title: "Excluído", description: `Futuros lançamentos recorrentes de ${typeInPortugueseSingular} excluídos.` });
       }
-      onDelete(); // Refresh list
+
+      if (success) {
+        onDelete(); // Refresh list
+      } else {
+        toast({ title: "Erro", description: `Falha ao excluir. A transação pode já ter sido removida ou você não tem permissão.`, variant: "destructive" });
+      }
     } catch (error) {
-      toast({ title: "Erro", description: `Falha ao excluir.`, variant: "destructive" });
+      toast({ title: "Erro Inesperado", description: `Falha ao excluir.`, variant: "destructive" });
     } finally {
       setDialogOpen(false);
       setSelectedTransaction(null);
       setDeleteType(null);
     }
   };
-  
+
   const getMonthName = (monthNumber: number) => MONTHS.find(m => m.value === monthNumber)?.label || 'N/A';
 
   if (transactions.length === 0) {
@@ -127,7 +135,7 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
                       <DropdownMenuItem onClick={() => handleDelete(transaction, 'single')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
                         <Trash2 className="mr-2 h-4 w-4" /> Excluir Este Lançamento
                       </DropdownMenuItem>
-                      {transaction.isRecurring && (
+                      {transaction.isRecurring && transaction.recurringGroupId && ( // Adicionado check para recurringGroupId
                         <DropdownMenuItem onClick={() => handleDelete(transaction, 'future')}  className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
                           <AlertTriangle className="mr-2 h-4 w-4" /> Excluir Lançamentos Futuros
                         </DropdownMenuItem>

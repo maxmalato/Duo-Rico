@@ -1,72 +1,131 @@
-// src/lib/localStorageService.ts
-import type { User, Transaction } from './types';
-import { LOCAL_STORAGE_USERS_KEY, LOCAL_STORAGE_TRANSACTIONS_KEY, LOCAL_STORAGE_AUTH_USER_KEY } from './constants';
 
-// Generic getter
-const getFromLocalStorage = <T>(key: string, defaultValue: T): T => {
-  if (typeof window === 'undefined') return defaultValue;
-  try {
-    const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.warn(`Error reading localStorage key "${key}":`, error);
-    return defaultValue;
+// src/lib/transactionService.ts (Conteúdo do antigo localStorageService.ts, agora focado em Supabase para transações)
+import type { Transaction } from './types';
+import { supabase } from './supabaseClient';
+
+// As funções relacionadas ao LocalStorage para usuários foram removidas,
+// pois o AuthContext agora lida com perfis de usuário diretamente do Supabase.
+
+// --- Funções de Transação com Supabase ---
+
+/**
+ * Busca todas as transações do Supabase.
+ * As RLS policies no Supabase garantirão que o usuário veja apenas transações permitidas.
+ */
+export const getTransactions = async (): Promise<Transaction[]> => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*');
+
+  if (error) {
+    console.error('Error fetching transactions from Supabase:', error);
+    return [];
   }
+  // O Supabase retorna amount como string se for NUMERIC, precisa converter.
+  // E created_at é uma string ISO, o que está ok.
+  return data.map(t => ({ ...t, amount: Number(t.amount) })) as Transaction[];
 };
 
-// Generic setter
-const saveToLocalStorage = <T>(key: string, value: T): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.warn(`Error setting localStorage key "${key}":`, error);
+/**
+ * Adiciona uma nova transação ao Supabase.
+ * A coluna 'id' será gerada pelo Supabase.
+ * A coluna 'created_at' será definida pelo Supabase.
+ */
+export const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction | null> => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert([transactionData])
+    .select()
+    .single(); // .single() para retornar o objeto inserido
+
+  if (error) {
+    console.error('Error adding transaction to Supabase:', error);
+    return null;
   }
+  return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
 };
 
-// User specific functions
-export const getUsersFromLocalStorage = (): User[] => getFromLocalStorage<User[]>(LOCAL_STORAGE_USERS_KEY, []);
-export const saveUsersToLocalStorage = (users: User[]): void => saveToLocalStorage<User[]>(LOCAL_STORAGE_USERS_KEY, users);
+/**
+ * Atualiza uma transação existente no Supabase.
+ */
+export const updateTransaction = async (updatedTransaction: Transaction): Promise<Transaction | null> => {
+  const { id, ...updateData } = updatedTransaction;
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
 
-export const getAuthenticatedUserFromLocalStorage = (): User | null => getFromLocalStorage<User | null>(LOCAL_STORAGE_AUTH_USER_KEY, null);
-export const saveAuthenticatedUserToLocalStorage = (user: User): void => saveToLocalStorage<User | null>(LOCAL_STORAGE_AUTH_USER_KEY, user);
-export const removeAuthenticatedUserFromLocalStorage = (): void => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(LOCAL_STORAGE_AUTH_USER_KEY);
-}
-
-// Transaction specific functions
-export const getTransactionsFromLocalStorage = (): Transaction[] => getFromLocalStorage<Transaction[]>(LOCAL_STORAGE_TRANSACTIONS_KEY, []);
-export const saveTransactionsToLocalStorage = (transactions: Transaction[]): void => saveToLocalStorage<Transaction[]>(LOCAL_STORAGE_TRANSACTIONS_KEY, transactions);
-
-export const addTransactionToLocalStorage = (transaction: Transaction): void => {
-  const transactions = getTransactionsFromLocalStorage();
-  transactions.push(transaction);
-  saveTransactionsToLocalStorage(transactions);
+  if (error) {
+    console.error('Error updating transaction in Supabase:', error);
+    return null;
+  }
+  return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
 };
 
-export const updateTransactionInLocalStorage = (updatedTransaction: Transaction): void => {
-  let transactions = getTransactionsFromLocalStorage();
-  transactions = transactions.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
-  saveTransactionsToLocalStorage(transactions);
+/**
+ * Exclui uma transação do Supabase pelo ID.
+ */
+export const deleteTransaction = async (transactionId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transactionId);
+
+  if (error) {
+    console.error('Error deleting transaction from Supabase:', error);
+    return false;
+  }
+  return true;
 };
 
-export const deleteTransactionFromLocalStorage = (transactionId: string): void => {
-  let transactions = getTransactionsFromLocalStorage();
-  transactions = transactions.filter(t => t.id !== transactionId);
-  saveTransactionsToLocalStorage(transactions);
-};
+/**
+ * Exclui futuras transações recorrentes de um grupo específico,
+ * a partir de um mês e ano de referência.
+ */
+export const deleteFutureRecurringTransactions = async (
+  recurringGroupId: string,
+  currentMonth: number,
+  currentYear: number
+): Promise<boolean> => {
+  // Esta lógica é um pouco complexa para RLS diretas, então faremos em duas etapas:
+  // 1. Buscar IDs das transações a serem deletadas.
+  // 2. Deletar essas transações pelos IDs.
 
-export const deleteFutureRecurringTransactions = (recurringGroupId: string, currentMonth: number, currentYear: number): void => {
-  let transactions = getTransactionsFromLocalStorage();
-  transactions = transactions.filter(t => {
-    if (t.recurringGroupId === recurringGroupId) {
-      // Check if transaction date is same or after currentMonth/Year
-      const transactionDate = new Date(t.year, t.month - 1); // month is 0-indexed
-      const currentDate = new Date(currentYear, currentMonth - 1);
-      return transactionDate < currentDate;
+  // Busca transações do grupo recorrente que são do mês/ano atual ou futuros
+  const { data: transactionsToDelete, error: fetchError } = await supabase
+    .from('transactions')
+    .select('id, month, year')
+    .eq('recurring_group_id', recurringGroupId);
+
+  if (fetchError) {
+    console.error('Error fetching recurring transactions to delete:', fetchError);
+    return false;
+  }
+
+  const idsToDelete: string[] = [];
+  const referenceDate = new Date(currentYear, currentMonth - 1); // Mês é 0-indexado no Date
+
+  transactionsToDelete.forEach(t => {
+    const transactionDate = new Date(t.year, t.month - 1);
+    if (transactionDate >= referenceDate) {
+      idsToDelete.push(t.id);
     }
-    return true;
   });
-  saveTransactionsToLocalStorage(transactions);
+
+  if (idsToDelete.length === 0) {
+    return true; // Nenhuma transação futura para deletar
+  }
+
+  const { error: deleteError } = await supabase
+    .from('transactions')
+    .delete()
+    .in('id', idsToDelete);
+
+  if (deleteError) {
+    console.error('Error deleting future recurring transactions from Supabase:', deleteError);
+    return false;
+  }
+  return true;
 };

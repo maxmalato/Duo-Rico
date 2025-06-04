@@ -23,7 +23,8 @@ import { useState } from "react";
 import { Loader2, PlusCircle, Edit3 } from "lucide-react";
 import type { Transaction, TransactionType, Category } from "@/lib/types";
 import { MONTHS, YEARS, CURRENT_YEAR } from "@/lib/constants";
-import { addTransactionToLocalStorage, updateTransactionInLocalStorage } from "@/lib/localStorageService";
+// Atualizado para usar o novo serviço (que agora interage com Supabase)
+import { addTransaction, updateTransaction } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
 import { useAuth } from "@/hooks/useAuth";
 
 const transactionFormSchema = z.object({
@@ -63,10 +64,10 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
       month: existingTransaction.month,
       year: existingTransaction.year,
       isRecurring: existingTransaction.isRecurring || false,
-      installments: existingTransaction.totalInstallments || undefined, 
+      installments: existingTransaction.totalInstallments || undefined,
     } : {
       description: "",
-      amount: undefined, 
+      amount: undefined,
       category: "",
       month: new Date().getMonth() + 1,
       year: CURRENT_YEAR,
@@ -81,19 +82,18 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
     if (value === undefined || isNaN(value)) {
       return '';
     }
-    return value.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).replace('R$', '').trim(); // Remove R$ e espaços para edição mais fácil
+    // Converte para string, formata com vírgula como separador decimal
+    const [integerPart, decimalPart = ""] = String(value.toFixed(2)).split('.');
+    return `${integerPart},${decimalPart.padEnd(2, '0')}`;
   };
 
   const parseDisplayToAmount = (displayValue: string): number | undefined => {
-    const digits = displayValue.replace(/\D/g, ''); 
+    const digits = displayValue.replace(/\D/g, ''); // Remove tudo exceto dígitos
     if (digits === '') {
       return undefined;
     }
     const numericValueInCents = parseInt(digits, 10);
-    return numericValueInCents / 100; 
+    return numericValueInCents / 100; // Converte centavos para Reais
   };
 
 
@@ -110,25 +110,30 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
         setIsLoading(false);
         return;
       }
-      
-      const baseTransactionData = {
-        userId: user.id, // ID do usuário que criou/modificou
+
+      // Não precisamos mais de `id` e `createdAt` aqui, Supabase cuidará disso na inserção.
+      // Para atualização, `existingTransaction.id` e `existingTransaction.createdAt` serão usados.
+      const baseTransactionData: Omit<Transaction, 'id' | 'createdAt'> = {
+        user_id: user.id,
         type,
         description: values.description,
         amount: values.amount,
         category: values.category,
-        createdAt: existingTransaction ? existingTransaction.createdAt : new Date().toISOString(),
         couple_id: user.couple_id || null, // Adiciona o couple_id do usuário atual
+        // month, year, isRecurring, etc., serão adicionados abaixo
       };
 
+
       if (values.isRecurring && values.installments && values.installments > 0) {
+        // Para novas séries recorrentes, o recurringGroupId é gerado.
+        // Para editar uma série, manteríamos o recurringGroupId existente se aplicável (não totalmente implementado para edição de série)
         const recurringGroupId = existingTransaction?.recurringGroupId || crypto.randomUUID();
-        
+
+        let allSuccessful = true;
         for (let i = 0; i < values.installments; i++) {
-          const transactionDate = new Date(values.year, values.month -1 + i); 
-          const transaction: Transaction = {
+          const transactionDate = new Date(values.year, values.month - 1 + i);
+          const transactionToSave: Omit<Transaction, 'id' | 'createdAt'> = {
             ...baseTransactionData,
-            id: existingTransaction && i === 0 && existingTransaction.isRecurring ? existingTransaction.id : crypto.randomUUID(), 
             month: transactionDate.getMonth() + 1,
             year: transactionDate.getFullYear(),
             isRecurring: true,
@@ -136,47 +141,76 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
             installmentNumber: i + 1,
             totalInstallments: values.installments,
           };
-          // Se estiver editando uma transação recorrente existente, atualize a primeira. Crie novas para as demais.
-          // Uma lógica mais sofisticada seria necessária para atualizar uma série inteira de forma inteligente.
-          if (existingTransaction && i === 0 && existingTransaction.isRecurring) {
-             updateTransactionInLocalStorage(transaction); 
+
+          // Se estiver editando uma transação que ERA recorrente e estamos na primeira "nova" parcela,
+          // podemos tentar atualizar a original. Caso contrário, sempre adicionamos.
+          // Esta lógica de edição de série é simplificada.
+          if (existingTransaction && i === 0 && existingTransaction.isRecurring && existingTransaction.recurringGroupId === recurringGroupId) {
+            const result = await updateTransaction({
+                ...transactionToSave,
+                id: existingTransaction.id, // Mantém o ID da primeira parcela original
+                createdAt: existingTransaction.createdAt // Mantém o createdAt original
+            });
+            if (!result) allSuccessful = false;
           } else {
-             addTransactionToLocalStorage(transaction); 
+            const result = await addTransaction(transactionToSave);
+            if (!result) allSuccessful = false;
           }
         }
-         toast({ title: `Série de ${typeInPortugueseSingular} ${existingTransaction?.isRecurring ? 'Atualizada' : 'Adicionada'}`, description: `Série ${values.description} processada com sucesso.` });
+        if (allSuccessful) {
+          toast({ title: `Série de ${typeInPortugueseSingular} ${existingTransaction?.isRecurring ? 'Atualizada' : 'Adicionada'}`, description: `Série ${values.description} processada com sucesso.` });
+        } else {
+          toast({ title: "Erro Parcial", description: `Algumas ${typeInPortugueseSingular}s da série podem não ter sido salvas.`, variant: "destructive" });
+        }
 
       } else {
-        // Transação única ou editando uma única para se tornar não recorrente
-        const transaction: Transaction = {
-          ...baseTransactionData,
-          id: existingTransaction?.id || crypto.randomUUID(),
-          month: values.month,
-          year: values.year,
-          isRecurring: false,
-          recurringGroupId: undefined,
-          installmentNumber: undefined,
-          totalInstallments: undefined,
-        };
+        // Transação única ou editando uma única
         if (existingTransaction) {
-          updateTransactionInLocalStorage(transaction);
+          const transactionToUpdate: Transaction = {
+            ...baseTransactionData, // Contém user_id, couple_id
+            id: existingTransaction.id, // ID da transação existente
+            month: values.month,
+            year: values.year,
+            isRecurring: false, // Se não for recorrente, zera campos de recorrência
+            recurringGroupId: undefined,
+            installmentNumber: undefined,
+            totalInstallments: undefined,
+            createdAt: existingTransaction.createdAt, // Mantém o createdAt original
+          };
+          const result = await updateTransaction(transactionToUpdate);
+          if (result) {
+            toast({ title: `${typeInPortuguese} Atualizada`, description: `${values.description} atualizada com sucesso.` });
+          } else {
+            toast({ title: "Erro", description: `Falha ao atualizar ${typeInPortugueseSingular}.`, variant: "destructive" });
+          }
         } else {
-          addTransactionToLocalStorage(transaction);
+          // Nova transação única
+          const transactionToSave: Omit<Transaction, 'id' | 'createdAt'> = {
+            ...baseTransactionData,
+            month: values.month,
+            year: values.year,
+            isRecurring: false,
+          };
+          const result = await addTransaction(transactionToSave);
+          if (result) {
+            toast({ title: `${typeInPortuguese} Adicionada`, description: `${values.description} adicionada com sucesso.` });
+          } else {
+            toast({ title: "Erro", description: `Falha ao adicionar ${typeInPortugueseSingular}.`, variant: "destructive" });
+          }
         }
-        toast({ title: `${typeInPortuguese} ${existingTransaction ? 'Atualizada' : 'Adicionada'}`, description: `${values.description} processada com sucesso.` });
       }
 
-      onFormSubmit(); 
-      dialogClose?.(); 
-      form.reset({ 
-        description: "", amount: undefined, category: "", 
-        month: new Date().getMonth() + 1, year: CURRENT_YEAR, 
+      onFormSubmit();
+      dialogClose?.();
+      form.reset({
+        description: "", amount: undefined, category: "",
+        month: new Date().getMonth() + 1, year: CURRENT_YEAR,
         isRecurring: false, installments: undefined
       });
 
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast({ title: "Erro", description: `Falha ao ${existingTransaction ? 'atualizar' : 'adicionar'} ${typeInPortugueseSingular}.`, variant: "destructive" });
+      toast({ title: "Erro Inesperado", description: `Falha ao ${existingTransaction ? 'atualizar' : 'adicionar'} ${typeInPortugueseSingular}.`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -206,10 +240,10 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
               <FormItem>
                 <FormLabel>Valor (R$)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="text" 
-                    inputMode="decimal" 
-                    placeholder="0,00" 
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00"
                     value={formatAmountForDisplay(field.value)}
                     onChange={(e) => {
                       const numericValue = parseDisplayToAmount(e.target.value);
@@ -315,12 +349,12 @@ export function TransactionForm({ type, categories, existingTransaction, onFormS
               <FormItem>
                 <FormLabel>Número de Parcelas (1-48)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    max="48" 
-                    placeholder="Ex: 12" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="1"
+                    max="48"
+                    placeholder="Ex: 12"
+                    {...field}
                     value={field.value === undefined || isNaN(field.value) ? '' : field.value}
                     onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                   />

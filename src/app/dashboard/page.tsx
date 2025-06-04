@@ -1,60 +1,64 @@
+
 // src/app/dashboard/page.tsx
 "use client";
 
 import { ProtectedPageLayout } from "@/components/layout/ProtectedPageLayout";
 import { FinancialOverview } from "@/components/dashboard/FinancialOverview";
 import { RecentExpenses } from "@/components/dashboard/RecentExpenses";
-import { getTransactionsFromLocalStorage } from "@/lib/localStorageService";
+// Atualizado para usar o novo serviço (que agora interage com Supabase)
+import { getTransactions } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
 import { useAuth } from "@/hooks/useAuth";
 import type { Transaction } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MONTHS, YEARS, CURRENT_YEAR } from "@/lib/constants";
+import { Loader2 } from "lucide-react";
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyExpenses, setMonthlyExpenses] = useState(0);
   const [recentExpensesList, setRecentExpensesList] = useState<Transaction[]>([]);
-  
+
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(CURRENT_YEAR);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(async () => {
     if (user) {
-      const allTransactions = getTransactionsFromLocalStorage();
-      let userVisibleTransactions: Transaction[];
+      setIsLoadingTransactions(true);
+      const allTransactions = await getTransactions(); // Agora é async
 
-      // Determina quais transações o usuário pode ver
-      if (user.couple_id) {
-        userVisibleTransactions = allTransactions.filter(t => t.couple_id === user.couple_id);
-      } else {
-        // Usuário individual: vê apenas as suas próprias transações que não têm couple_id ou cujo couple_id é o seu (improvável neste cenário)
-        userVisibleTransactions = allTransactions.filter(t => t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id));
-      }
-      
-      // Filtra as transações visíveis pelo período selecionado
-      const transactionsCurrentPeriod = userVisibleTransactions.filter(t => t.month === filterMonth && t.year === filterYear);
+      // A lógica de filtragem por couple_id ou user_id já é feita pelas RLS do Supabase.
+      // O frontend filtra apenas pelo período selecionado e tipo.
+
+      const transactionsCurrentPeriod = allTransactions.filter(t => t.month === filterMonth && t.year === filterYear);
 
       const incomeCurrentPeriod = transactionsCurrentPeriod
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
-      
+
       const expensesCurrentPeriod = transactionsCurrentPeriod
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
-      
+
       const lastThreeExpensesFromPeriod = transactionsCurrentPeriod
         .filter(t => t.type === 'expense')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 3);
-      
+
       setMonthlyIncome(incomeCurrentPeriod);
       setMonthlyExpenses(expensesCurrentPeriod);
       setRecentExpensesList(lastThreeExpensesFromPeriod);
+      setIsLoadingTransactions(false);
     }
   }, [user, filterMonth, filterYear]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const balance = monthlyIncome - monthlyExpenses;
   const currentMonthLabel = MONTHS.find(m => m.value === filterMonth)?.label || "";
@@ -87,15 +91,23 @@ export default function DashboardPage() {
             </Select>
           </CardContent>
         </Card>
-        
-        <FinancialOverview 
-          income={monthlyIncome} 
-          expenses={monthlyExpenses} 
-          balance={balance} 
-          monthLabel={currentMonthLabel}
-          year={filterYear}
-        />
-        <RecentExpenses expenses={recentExpensesList} />
+
+        {isLoadingTransactions ? (
+          <div className="flex justify-center items-center py-10">
+             <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <FinancialOverview
+              income={monthlyIncome}
+              expenses={monthlyExpenses}
+              balance={balance}
+              monthLabel={currentMonthLabel}
+              year={filterYear}
+            />
+            <RecentExpenses expenses={recentExpensesList} />
+          </>
+        )}
       </div>
     </ProtectedPageLayout>
   );
