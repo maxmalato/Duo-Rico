@@ -28,9 +28,15 @@ export default function IncomePage() {
 
   const fetchIncome = useCallback(() => {
     if (user) {
-      const transactions = getTransactionsFromLocalStorage();
-      const userIncome = transactions.filter(t => t.userId === user.id && t.type === 'income');
-      setAllIncome(userIncome);
+      const allTransactions = getTransactionsFromLocalStorage();
+      let userVisibleTransactions: Transaction[];
+
+      if (user.couple_id) {
+        userVisibleTransactions = allTransactions.filter(t => t.type === 'income' && t.couple_id === user.couple_id);
+      } else {
+        userVisibleTransactions = allTransactions.filter(t => t.type === 'income' && t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id) );
+      }
+      setAllIncome(userVisibleTransactions);
     }
   }, [user]);
 
@@ -46,8 +52,6 @@ export default function IncomePage() {
 
   const handleFormSubmit = () => {
     fetchIncome(); 
-    // setIsDialogOpen(false); 
-    // setEditingTransaction(undefined);
   };
   
   const openAddDialog = () => {
@@ -56,8 +60,14 @@ export default function IncomePage() {
   };
 
   const openEditDialog = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-    setIsDialogOpen(true);
+    // Permissão: usuário atual pode editar se a transação pertencer ao seu couple_id ou diretamente a ele
+    if (user && ((user.couple_id && transaction.couple_id === user.couple_id) || transaction.userId === user.id)) {
+      setEditingTransaction(transaction);
+      setIsDialogOpen(true);
+    } else {
+      // Idealmente, mostrar um toast de "não permitido"
+      console.warn("Tentativa de editar transação não permitida.");
+    }
   };
   
   const totalFilteredIncome = filteredIncome.reduce((sum, t) => sum + t.amount, 0);
@@ -128,7 +138,7 @@ export default function IncomePage() {
               transactions={filteredIncome}
               type="income"
               onEdit={openEditDialog}
-              onDelete={handleFormSubmit}
+              onDelete={handleFormSubmit} // A lógica de permissão de delete está no TransactionList
             />
           </CardContent>
         </Card>

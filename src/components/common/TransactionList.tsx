@@ -23,12 +23,13 @@ import { deleteTransactionFromLocalStorage, deleteFutureRecurringTransactions } 
 import { useToast } from "@/hooks/use-toast";
 import { MONTHS, getCategoryLabel } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth"; // Importar useAuth
 
 interface TransactionListProps {
   transactions: Transaction[];
   type: TransactionType;
   onEdit: (transaction: Transaction) => void;
-  onDelete: () => void; // Callback to refresh list
+  onDelete: () => void; // Callback to refresh list after deletion
 }
 
 export function TransactionList({ transactions, type, onEdit, onDelete }: TransactionListProps) {
@@ -36,10 +37,23 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
   const [deleteType, setDeleteType] = useState<'single' | 'future' | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth(); // Obter usuário atual
 
   const typeInPortugueseSingular = type === 'income' ? 'receita' : 'despesa';
 
+  const canPerformAction = (transaction: Transaction): boolean => {
+    if (!user) return false;
+    // Usuário pode editar/excluir se a transação pertencer ao seu couple_id
+    // OU se a transação pertencer diretamente a ele (e não houver couple_id ou o couple_id da transação for o seu)
+    return (user.couple_id && transaction.couple_id === user.couple_id) || 
+           (transaction.userId === user.id && (!transaction.couple_id || transaction.couple_id === user.couple_id));
+  };
+
   const handleDelete = (transaction: Transaction, delType: 'single' | 'future') => {
+    if (!canPerformAction(transaction)) {
+      toast({ title: "Não Permitido", description: `Você não tem permissão para excluir esta ${typeInPortugueseSingular}.`, variant: "destructive" });
+      return;
+    }
     setSelectedTransaction(transaction);
     setDeleteType(delType);
     setDialogOpen(true);
@@ -100,24 +114,26 @@ export function TransactionList({ transactions, type, onEdit, onDelete }: Transa
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canPerformAction(transaction)}>
                       <span className="sr-only">Abrir menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(transaction)}>
-                      <Edit className="mr-2 h-4 w-4" /> Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete(transaction, 'single')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" /> Excluir Este Lançamento
-                    </DropdownMenuItem>
-                    {transaction.isRecurring && (
-                      <DropdownMenuItem onClick={() => handleDelete(transaction, 'future')}  className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                        <AlertTriangle className="mr-2 h-4 w-4" /> Excluir Lançamentos Futuros
+                  {canPerformAction(transaction) && (
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                        <Edit className="mr-2 h-4 w-4" /> Editar
                       </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleDelete(transaction, 'single')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Excluir Este Lançamento
+                      </DropdownMenuItem>
+                      {transaction.isRecurring && (
+                        <DropdownMenuItem onClick={() => handleDelete(transaction, 'future')}  className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                          <AlertTriangle className="mr-2 h-4 w-4" /> Excluir Lançamentos Futuros
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  )}
                 </DropdownMenu>
               </TableCell>
             </TableRow>

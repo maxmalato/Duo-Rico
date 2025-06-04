@@ -24,7 +24,7 @@ export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
   id: string;
-  userId: string; // Deverá ser o ID do usuário do Supabase
+  userId: string; // Deverá ser o ID do usuário do Supabase que criou originalmente
   type: TransactionType;
   description: string;
   amount: number;
@@ -36,6 +36,7 @@ export interface Transaction {
   recurringGroupId?: string; 
   installmentNumber?: number; 
   totalInstallments?: number; 
+  couple_id?: string | null; // Adicionado para compartilhamento
 }
 
 export interface Category {

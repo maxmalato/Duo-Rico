@@ -28,9 +28,15 @@ export default function ExpensesPage() {
   
   const fetchExpenses = useCallback(() => {
     if (user) {
-      const transactions = getTransactionsFromLocalStorage();
-      const userExpenses = transactions.filter(t => t.userId === user.id && t.type === 'expense');
-      setAllExpenses(userExpenses);
+      const allTransactions = getTransactionsFromLocalStorage();
+      let userVisibleTransactions: Transaction[];
+
+      if (user.couple_id) {
+        userVisibleTransactions = allTransactions.filter(t => t.type === 'expense' && t.couple_id === user.couple_id);
+      } else {
+        userVisibleTransactions = allTransactions.filter(t => t.type === 'expense' && t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id));
+      }
+      setAllExpenses(userVisibleTransactions);
     }
   }, [user]);
 
@@ -46,8 +52,6 @@ export default function ExpensesPage() {
 
   const handleFormSubmit = () => {
     fetchExpenses(); 
-    // setIsDialogOpen(false); 
-    // setEditingTransaction(undefined);
   };
 
   const openAddDialog = () => {
@@ -56,8 +60,12 @@ export default function ExpensesPage() {
   };
 
   const openEditDialog = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-    setIsDialogOpen(true);
+    if (user && ((user.couple_id && transaction.couple_id === user.couple_id) || transaction.userId === user.id)) {
+      setEditingTransaction(transaction);
+      setIsDialogOpen(true);
+    } else {
+      console.warn("Tentativa de editar transação não permitida.");
+    }
   };
 
   const totalFilteredExpenses = filteredExpenses.reduce((sum, t) => sum + t.amount, 0);
@@ -128,7 +136,7 @@ export default function ExpensesPage() {
               transactions={filteredExpenses}
               type="expense"
               onEdit={openEditDialog}
-              onDelete={handleFormSubmit}
+              onDelete={handleFormSubmit} // A lógica de permissão de delete está no TransactionList
             />
           </CardContent>
         </Card>

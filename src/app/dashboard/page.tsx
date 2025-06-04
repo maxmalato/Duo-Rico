@@ -23,20 +23,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      const transactions = getTransactionsFromLocalStorage().filter(t => t.userId === user.id);
+      const allTransactions = getTransactionsFromLocalStorage();
+      let userVisibleTransactions: Transaction[];
 
-      const incomeCurrentPeriod = transactions
-        .filter(t => t.type === 'income' && t.month === filterMonth && t.year === filterYear)
+      // Determina quais transações o usuário pode ver
+      if (user.couple_id) {
+        userVisibleTransactions = allTransactions.filter(t => t.couple_id === user.couple_id);
+      } else {
+        // Usuário individual: vê apenas as suas próprias transações que não têm couple_id ou cujo couple_id é o seu (improvável neste cenário)
+        userVisibleTransactions = allTransactions.filter(t => t.userId === user.id && (!t.couple_id || t.couple_id === user.couple_id));
+      }
+      
+      // Filtra as transações visíveis pelo período selecionado
+      const transactionsCurrentPeriod = userVisibleTransactions.filter(t => t.month === filterMonth && t.year === filterYear);
+
+      const incomeCurrentPeriod = transactionsCurrentPeriod
+        .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
       
-      const expensesCurrentPeriod = transactions
-        .filter(t => t.type === 'expense' && t.month === filterMonth && t.year === filterYear)
+      const expensesCurrentPeriod = transactionsCurrentPeriod
+        .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
-
-      const expensesForSelectedPeriod = transactions
-        .filter(t => t.type === 'expense' && t.month === filterMonth && t.year === filterYear);
-
-      const lastThreeExpensesFromPeriod = expensesForSelectedPeriod
+      
+      const lastThreeExpensesFromPeriod = transactionsCurrentPeriod
+        .filter(t => t.type === 'expense')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 3);
       
