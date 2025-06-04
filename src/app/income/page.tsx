@@ -7,7 +7,7 @@ import { TransactionForm } from "@/components/common/TransactionForm";
 import { TransactionList } from "@/components/common/TransactionList";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react"; // Added Loader2
 import { INCOME_CATEGORIES, MONTHS, CURRENT_YEAR, YEARS } from "@/lib/constants";
 // Atualizado para usar o novo serviço (que agora interage com Supabase)
 import { getTransactions } from "@/lib/localStorageService"; // Renomear este arquivo/serviço mentalmente para transactionService
