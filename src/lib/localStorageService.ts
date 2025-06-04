@@ -3,10 +3,50 @@
 import type { Transaction } from './types';
 import { supabase } from './supabaseClient';
 
-// As funções relacionadas ao LocalStorage para usuários foram removidas,
-// pois o AuthContext agora lida com perfis de usuário diretamente do Supabase.
+// Helper function to map frontend Transaction (camelCase) to DB transaction (snake_case)
+const mapToDbTransaction = (transaction: Partial<Omit<Transaction, 'id' | 'createdAt'>>): any => {
+  const {
+    isRecurring,
+    recurringGroupId,
+    installmentNumber,
+    totalInstallments,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    id, // id should not be sent for insert, handled by update
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    createdAt, // createdAt is set by db
+    ...rest
+  } = transaction;
 
-// --- Funções de Transação com Supabase ---
+  const dbTransaction: any = { ...rest };
+  if (isRecurring !== undefined) dbTransaction.is_recurring = isRecurring;
+  if (recurringGroupId !== undefined) dbTransaction.recurring_group_id = recurringGroupId; else if (recurringGroupId === null) dbTransaction.recurring_group_id = null;
+  if (installmentNumber !== undefined) dbTransaction.installment_number = installmentNumber; else if (installmentNumber === null) dbTransaction.installment_number = null;
+  if (totalInstallments !== undefined) dbTransaction.total_installments = totalInstallments; else if (totalInstallments === null) dbTransaction.total_installments = null;
+  
+  return dbTransaction;
+};
+
+// Helper function to map DB transaction (snake_case) to frontend Transaction (camelCase)
+const mapFromDbTransaction = (dbData: any): Transaction => {
+  const {
+    is_recurring,
+    recurring_group_id,
+    installment_number,
+    total_installments,
+    amount,
+    ...rest
+  } = dbData;
+
+  const transaction: Partial<Transaction> = { ...rest };
+  if (is_recurring !== undefined) transaction.isRecurring = is_recurring;
+  if (recurring_group_id !== undefined) transaction.recurringGroupId = recurring_group_id;
+  if (installment_number !== undefined) transaction.installmentNumber = installment_number;
+  if (total_installments !== undefined) transaction.totalInstallments = total_installments;
+  
+  transaction.amount = Number(amount); // Ensure amount is a number
+
+  return transaction as Transaction;
+};
 
 /**
  * Busca todas as transações do Supabase.
@@ -21,38 +61,37 @@ export const getTransactions = async (): Promise<Transaction[]> => {
     console.error('Error fetching transactions from Supabase:', JSON.stringify(error, null, 2));
     return [];
   }
-  // O Supabase retorna amount como string se for NUMERIC, precisa converter.
-  // E created_at é uma string ISO, o que está ok.
-  return data.map(t => ({ ...t, amount: Number(t.amount) })) as Transaction[];
+  return data.map(mapFromDbTransaction);
 };
 
 /**
  * Adiciona uma nova transação ao Supabase.
- * A coluna 'id' será gerada pelo Supabase.
- * A coluna 'created_at' será definida pelo Supabase.
  */
 export const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction | null> => {
+  const dbReadyData = mapToDbTransaction(transactionData);
   const { data, error } = await supabase
     .from('transactions')
-    .insert([transactionData])
+    .insert([dbReadyData])
     .select()
-    .single(); // .single() para retornar o objeto inserido
+    .single();
 
   if (error) {
     console.error('Error adding transaction to Supabase:', JSON.stringify(error, null, 2));
     return null;
   }
-  return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
+  return data ? mapFromDbTransaction(data) : null;
 };
 
 /**
  * Atualiza uma transação existente no Supabase.
  */
 export const updateTransaction = async (updatedTransaction: Transaction): Promise<Transaction | null> => {
-  const { id, ...updateData } = updatedTransaction;
+  const { id, ...transactionData } = updatedTransaction;
+  const dbReadyData = mapToDbTransaction(transactionData);
+
   const { data, error } = await supabase
     .from('transactions')
-    .update(updateData)
+    .update(dbReadyData)
     .eq('id', id)
     .select()
     .single();
@@ -61,7 +100,7 @@ export const updateTransaction = async (updatedTransaction: Transaction): Promis
     console.error('Error updating transaction in Supabase:', JSON.stringify(error, null, 2));
     return null;
   }
-  return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
+  return data ? mapFromDbTransaction(data) : null;
 };
 
 /**
@@ -89,15 +128,10 @@ export const deleteFutureRecurringTransactions = async (
   currentMonth: number,
   currentYear: number
 ): Promise<boolean> => {
-  // Esta lógica é um pouco complexa para RLS diretas, então faremos em duas etapas:
-  // 1. Buscar IDs das transações a serem deletadas.
-  // 2. Deletar essas transações pelos IDs.
-
-  // Busca transações do grupo recorrente que são do mês/ano atual ou futuros
   const { data: transactionsToDelete, error: fetchError } = await supabase
     .from('transactions')
     .select('id, month, year')
-    .eq('recurring_group_id', recurringGroupId);
+    .eq('recurring_group_id', recurringGroupId); // DB uses snake_case
 
   if (fetchError) {
     console.error('Error fetching recurring transactions to delete:', JSON.stringify(fetchError, null, 2));
@@ -105,7 +139,7 @@ export const deleteFutureRecurringTransactions = async (
   }
 
   const idsToDelete: string[] = [];
-  const referenceDate = new Date(currentYear, currentMonth - 1); // Mês é 0-indexado no Date
+  const referenceDate = new Date(currentYear, currentMonth - 1);
 
   transactionsToDelete.forEach(t => {
     const transactionDate = new Date(t.year, t.month - 1);
@@ -115,7 +149,7 @@ export const deleteFutureRecurringTransactions = async (
   });
 
   if (idsToDelete.length === 0) {
-    return true; // Nenhuma transação futura para deletar
+    return true;
   }
 
   const { error: deleteError } = await supabase
@@ -129,4 +163,3 @@ export const deleteFutureRecurringTransactions = async (
   }
   return true;
 };
-
