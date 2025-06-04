@@ -18,7 +18,7 @@ export const getTransactions = async (): Promise<Transaction[]> => {
     .select('*');
 
   if (error) {
-    console.error('Error fetching transactions from Supabase:', error);
+    console.error('Error fetching transactions from Supabase:', JSON.stringify(error, null, 2));
     return [];
   }
   // O Supabase retorna amount como string se for NUMERIC, precisa converter.
@@ -39,7 +39,7 @@ export const addTransaction = async (transactionData: Omit<Transaction, 'id' | '
     .single(); // .single() para retornar o objeto inserido
 
   if (error) {
-    console.error('Error adding transaction to Supabase:', error);
+    console.error('Error adding transaction to Supabase:', JSON.stringify(error, null, 2));
     return null;
   }
   return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
@@ -58,7 +58,7 @@ export const updateTransaction = async (updatedTransaction: Transaction): Promis
     .single();
 
   if (error) {
-    console.error('Error updating transaction in Supabase:', error);
+    console.error('Error updating transaction in Supabase:', JSON.stringify(error, null, 2));
     return null;
   }
   return data ? { ...data, amount: Number(data.amount) } as Transaction : null;
@@ -74,7 +74,7 @@ export const deleteTransaction = async (transactionId: string): Promise<boolean>
     .eq('id', transactionId);
 
   if (error) {
-    console.error('Error deleting transaction from Supabase:', error);
+    console.error('Error deleting transaction from Supabase:', JSON.stringify(error, null, 2));
     return false;
   }
   return true;
@@ -100,7 +100,7 @@ export const deleteFutureRecurringTransactions = async (
     .eq('recurring_group_id', recurringGroupId);
 
   if (fetchError) {
-    console.error('Error fetching recurring transactions to delete:', fetchError);
+    console.error('Error fetching recurring transactions to delete:', JSON.stringify(fetchError, null, 2));
     return false;
   }
 
@@ -124,8 +124,9 @@ export const deleteFutureRecurringTransactions = async (
     .in('id', idsToDelete);
 
   if (deleteError) {
-    console.error('Error deleting future recurring transactions from Supabase:', deleteError);
+    console.error('Error deleting future recurring transactions from Supabase:', JSON.stringify(deleteError, null, 2));
     return false;
   }
   return true;
 };
+
