@@ -12,6 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Duo Rico',
   description: 'Gerencie suas finanças como um casal.',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
