@@ -40,10 +40,12 @@ export function FinancialOverview({ income, expenses, balance, monthLabel, year 
       <Card className="shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Saldo</CardTitle>
-          <Scale className="h-5 w-5 text-primary" />
+          <Scale className={`h-5 w-5 ${balance < 0 ? 'text-foreground' : 'text-primary'}`} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-primary">{formatCurrencyBRL(balance)}</div>
+          <div className={`text-2xl font-bold ${balance < 0 ? 'text-foreground' : 'text-primary'}`}>
+            {formatCurrencyBRL(balance)}
+          </div>
           <p className="text-xs text-muted-foreground">{periodText}</p>
         </CardContent>
       </Card>
