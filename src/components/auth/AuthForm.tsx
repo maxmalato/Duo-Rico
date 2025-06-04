@@ -62,7 +62,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           toast({ title: "Login Efetuado com Sucesso", description: "Bem-vindo(a) de volta!" });
           router.push("/dashboard");
         } else {
-          toast({ title: "Falha no Login", description: error?.message || "E-mail ou senha inválidos.", variant: "destructive" });
+          // Mostrar mensagem genérica para falha no login
+          toast({ title: "Falha no Login", description: "E-mail ou senha inválidos.", variant: "destructive" });
         }
       } else if (mode === "signup") {
         const signupValues = values as z.infer<typeof signupSchema>;
